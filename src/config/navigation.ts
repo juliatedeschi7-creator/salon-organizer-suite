@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   UserCircle,
   ClipboardList,
+  Bell,
   LucideIcon,
 } from "lucide-react";
 
@@ -54,6 +55,12 @@ export const navItems: NavItem[] = [
     label: "Financeiro",
     path: "/financeiro",
     icon: DollarSign,
+    roles: ["dono"],
+  },
+  {
+    label: "Notificações",
+    path: "/notificacoes",
+    icon: Bell,
     roles: ["dono"],
   },
   {
