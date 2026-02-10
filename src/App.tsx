@@ -8,6 +8,7 @@ import { SalonProvider } from "@/contexts/SalonContext";
 import AppLayout from "@/components/AppLayout";
 import DashboardPage from "@/pages/DashboardPage";
 import SettingsPage from "@/pages/SettingsPage";
+import NotificationsPage from "@/pages/NotificationsPage";
 import AdminPage from "@/pages/AdminPage";
 import EmployeePage from "@/pages/EmployeePage";
 import ClientAreaPage from "@/pages/ClientAreaPage";
@@ -27,6 +28,7 @@ const App = () => (
               <Route element={<AppLayout />}>
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/configuracoes" element={<SettingsPage />} />
+                <Route path="/notificacoes" element={<NotificationsPage />} />
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/minha-agenda" element={<EmployeePage />} />
                 <Route path="/cliente-area" element={<ClientAreaPage />} />
