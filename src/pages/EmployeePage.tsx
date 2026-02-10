@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, Package, Clock } from "lucide-react";
 
 const EmployeePage = () => {
-  const { user } = useAuth();
+  const { profile } = useAuth();
 
   return (
     <div className="space-y-6">
@@ -13,7 +13,7 @@ const EmployeePage = () => {
           Minha Agenda
         </h1>
         <p className="text-sm text-muted-foreground">
-          Seus agendamentos e comissões, {user?.name?.split(" ")[0]}
+          Seus agendamentos e comissões, {profile?.name?.split(" ")[0]}
         </p>
       </div>
 
