@@ -4,15 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSalon } from "@/contexts/SalonContext";
 import { navItems } from "@/config/navigation";
 import { cn } from "@/lib/utils";
-import { Scissors, ChevronLeft, ChevronRight } from "lucide-react";
+import { Scissors, ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { AppRole } from "@/types";
 
 interface AppSidebarProps {
@@ -28,7 +21,7 @@ const roleLabels: Record<AppRole, string> = {
 };
 
 const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
-  const { role, setRole, user } = useAuth();
+  const { role, profile, signOut } = useAuth();
   const { salon } = useSalon();
   const location = useLocation();
 
@@ -76,40 +69,29 @@ const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
         })}
       </nav>
 
-      {/* Role switcher (dev only) */}
-      {!collapsed && (
-        <div className="border-t border-sidebar-border p-3">
-          <p className="mb-1.5 text-[10px] uppercase tracking-wider text-sidebar-foreground/40">
-            Perfil ativo (dev)
-          </p>
-          <Select value={role} onValueChange={(v) => setRole(v as AppRole)}>
-            <SelectTrigger className="h-8 border-sidebar-border bg-sidebar-accent text-xs text-sidebar-foreground">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {(Object.keys(roleLabels) as AppRole[]).map((r) => (
-                <SelectItem key={r} value={r}>
-                  {roleLabels[r]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
       {/* User */}
       <div className="border-t border-sidebar-border p-3">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground">
-            {user?.name?.charAt(0) ?? "U"}
+            {profile?.name?.charAt(0) ?? "U"}
           </div>
           {!collapsed && (
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{user?.name}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{profile?.name || "Usuário"}</p>
               <p className="truncate text-[11px] text-sidebar-foreground/50">
                 {roleLabels[role]}
               </p>
             </div>
+          )}
+          {!collapsed && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={signOut}
+              className="h-7 w-7 text-sidebar-foreground/50 hover:text-sidebar-foreground"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
           )}
         </div>
       </div>

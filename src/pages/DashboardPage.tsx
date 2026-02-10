@@ -1,12 +1,10 @@
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSalon } from "@/contexts/SalonContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, DollarSign, Users, TrendingUp } from "lucide-react";
 
 const DashboardPage = () => {
-  const { user } = useAuth();
-  const { salon } = useSalon();
+  const { profile } = useAuth();
 
   const now = new Date();
   const dayName = now.toLocaleDateString("pt-BR", { weekday: "long" });
@@ -23,7 +21,7 @@ const DashboardPage = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">
-          Olá, {user?.name?.split(" ")[0]} 👋
+          Olá, {profile?.name?.split(" ")[0]} 👋
         </h1>
         <p className="text-sm capitalize text-muted-foreground">
           {dayName}, {dateStr}

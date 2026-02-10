@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Calendar, FileText, Package, Clock } from "lucide-react";
 
 const ClientAreaPage = () => {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const { salon } = useSalon();
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Olá, {user?.name?.split(" ")[0]} 💅</h1>
+        <h1 className="text-2xl font-bold text-foreground">Olá, {profile?.name?.split(" ")[0]} 💅</h1>
         <p className="text-sm text-muted-foreground">Bem-vinda ao {salon.name}</p>
       </div>
 
