@@ -9,6 +9,11 @@ import AppLayout from "@/components/AppLayout";
 import AuthPage from "@/pages/AuthPage";
 import PendingApprovalPage from "@/pages/PendingApprovalPage";
 import DashboardPage from "@/pages/DashboardPage";
+import AgendaPage from "@/pages/AgendaPage";
+import ClientesPage from "@/pages/ClientesPage";
+import AnamnesesPage from "@/pages/AnamnesesPage";
+import EstoquePage from "@/pages/EstoquePage";
+import FinanceiroPage from "@/pages/FinanceiroPage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotificationsPage from "@/pages/NotificationsPage";
 import AdminPage from "@/pages/AdminPage";
@@ -50,6 +55,11 @@ const AppRoutes = () => {
     <Routes>
       <Route element={<AppLayout />}>
         <Route path="/" element={<DashboardPage />} />
+        <Route path="/agenda" element={<AgendaPage />} />
+        <Route path="/clientes" element={<ClientesPage />} />
+        <Route path="/anamnese" element={<AnamnesesPage />} />
+        <Route path="/estoque" element={<EstoquePage />} />
+        <Route path="/financeiro" element={<FinanceiroPage />} />
         <Route path="/configuracoes" element={<SettingsPage />} />
         <Route path="/notificacoes" element={<NotificationsPage />} />
         <Route path="/admin" element={<AdminPage />} />

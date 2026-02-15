@@ -231,13 +231,26 @@ const NotificationsPage = () => {
           <h1 className="text-2xl font-bold text-foreground">Notificações</h1>
           <p className="text-sm text-muted-foreground">Gerencie lembretes e comunicações com suas clientes</p>
         </div>
-        <Dialog open={newOpen} onOpenChange={setNewOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Nova Notificação
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => {
+              toast.success("🔔 Notificação de teste enviada com sucesso!", {
+                description: "Esta é uma notificação de teste para verificar o funcionamento.",
+              });
+            }}
+          >
+            <Bell className="h-4 w-4" />
+            Testar Notificação
+          </Button>
+          <Dialog open={newOpen} onOpenChange={setNewOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Nova Notificação
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Enviar Notificação</DialogTitle>
@@ -300,7 +313,8 @@ const NotificationsPage = () => {
               </Button>
             </div>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       {/* Stats */}
