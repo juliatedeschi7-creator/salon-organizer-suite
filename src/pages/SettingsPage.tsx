@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useSalon } from "@/contexts/SalonContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,33 +7,60 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera, Save, Link as LinkIcon, Clock, Bell, Palette } from "lucide-react";
+import { Camera, Save, Link as LinkIcon, Clock, Bell, Palette, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const SettingsPage = () => {
-  const { salon, updateSalon } = useSalon();
-  const [form, setForm] = useState(salon);
-  const [logoPreview, setLogoPreview] = useState<string | null>(salon.logoUrl ?? null);
+  const { salon, updateSalon, isLoading } = useSalon();
+  const [form, setForm] = useState<any>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (salon) {
+      setForm({ ...salon });
+      setLogoPreview(salon.logo_url ?? null);
+    }
+  }, [salon]);
+
+  if (isLoading || !form) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const workingHours = Array.isArray(form.working_hours) ? form.working_hours : [];
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const url = URL.createObjectURL(file);
       setLogoPreview(url);
-      setForm((f) => ({ ...f, logoUrl: url }));
+      setForm((f: any) => ({ ...f, logo_url: url }));
     }
   };
 
   const handleHoursChange = (index: number, field: string, value: string | boolean) => {
-    const updated = [...form.workingHours];
+    const updated = [...workingHours];
     updated[index] = { ...updated[index], [field]: value };
-    setForm((f) => ({ ...f, workingHours: updated }));
+    setForm((f: any) => ({ ...f, working_hours: updated }));
   };
 
-  const handleSave = () => {
-    updateSalon(form);
-    toast.success("Configurações salvas com sucesso!");
+  const handleSave = async () => {
+    await updateSalon({
+      name: form.name,
+      description: form.description,
+      address: form.address,
+      phone: form.phone,
+      logo_url: form.logo_url,
+      client_link: form.client_link,
+      primary_color: form.primary_color,
+      accent_color: form.accent_color,
+      notifications_enabled: form.notifications_enabled,
+      working_hours: form.working_hours,
+    });
   };
 
   return (
@@ -51,7 +78,6 @@ const SettingsPage = () => {
           <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
         </TabsList>
 
-        {/* GERAL */}
         <TabsContent value="geral" className="space-y-4">
           <Card>
             <CardHeader>
@@ -120,15 +146,14 @@ const SettingsPage = () => {
                 <span className="text-sm text-muted-foreground">organiza.app/</span>
                 <Input
                   className="max-w-xs"
-                  value={form.clientLink}
-                  onChange={(e) => setForm({ ...form, clientLink: e.target.value.replace(/\s/g, "-").toLowerCase() })}
+                  value={form.client_link}
+                  onChange={(e) => setForm({ ...form, client_link: e.target.value.replace(/\s/g, "-").toLowerCase() })}
                 />
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* HORÁRIOS */}
         <TabsContent value="horarios">
           <Card>
             <CardHeader>
@@ -138,28 +163,15 @@ const SettingsPage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {form.workingHours.map((wh, i) => (
+              {workingHours.map((wh: any, i: number) => (
                 <div key={wh.day} className="flex items-center gap-4 rounded-lg border border-border p-3">
-                  <Switch
-                    checked={wh.enabled}
-                    onCheckedChange={(v) => handleHoursChange(i, "enabled", v)}
-                  />
+                  <Switch checked={wh.enabled} onCheckedChange={(v) => handleHoursChange(i, "enabled", v)} />
                   <span className="w-20 text-sm font-medium">{wh.day}</span>
                   {wh.enabled ? (
                     <>
-                      <Input
-                        type="time"
-                        className="w-28"
-                        value={wh.open}
-                        onChange={(e) => handleHoursChange(i, "open", e.target.value)}
-                      />
+                      <Input type="time" className="w-28" value={wh.open} onChange={(e) => handleHoursChange(i, "open", e.target.value)} />
                       <span className="text-muted-foreground">até</span>
-                      <Input
-                        type="time"
-                        className="w-28"
-                        value={wh.close}
-                        onChange={(e) => handleHoursChange(i, "close", e.target.value)}
-                      />
+                      <Input type="time" className="w-28" value={wh.close} onChange={(e) => handleHoursChange(i, "close", e.target.value)} />
                     </>
                   ) : (
                     <span className="text-sm text-muted-foreground">Fechado</span>
@@ -170,7 +182,6 @@ const SettingsPage = () => {
           </Card>
         </TabsContent>
 
-        {/* VISUAL */}
         <TabsContent value="visual">
           <Card>
             <CardHeader>
@@ -184,53 +195,28 @@ const SettingsPage = () => {
               <div className="space-y-2">
                 <Label>Cor primária</Label>
                 <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={form.primaryColor}
-                    onChange={(e) => setForm({ ...form, primaryColor: e.target.value })}
-                    className="h-10 w-10 cursor-pointer rounded-md border border-border"
-                  />
-                  <Input
-                    value={form.primaryColor}
-                    onChange={(e) => setForm({ ...form, primaryColor: e.target.value })}
-                    className="max-w-[120px]"
-                  />
+                  <input type="color" value={form.primary_color} onChange={(e) => setForm({ ...form, primary_color: e.target.value })} className="h-10 w-10 cursor-pointer rounded-md border border-border" />
+                  <Input value={form.primary_color} onChange={(e) => setForm({ ...form, primary_color: e.target.value })} className="max-w-[120px]" />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Cor de destaque</Label>
                 <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={form.accentColor}
-                    onChange={(e) => setForm({ ...form, accentColor: e.target.value })}
-                    className="h-10 w-10 cursor-pointer rounded-md border border-border"
-                  />
-                  <Input
-                    value={form.accentColor}
-                    onChange={(e) => setForm({ ...form, accentColor: e.target.value })}
-                    className="max-w-[120px]"
-                  />
+                  <input type="color" value={form.accent_color} onChange={(e) => setForm({ ...form, accent_color: e.target.value })} className="h-10 w-10 cursor-pointer rounded-md border border-border" />
+                  <Input value={form.accent_color} onChange={(e) => setForm({ ...form, accent_color: e.target.value })} className="max-w-[120px]" />
                 </div>
               </div>
               <div className="col-span-full mt-4">
                 <p className="mb-2 text-sm font-medium">Preview</p>
                 <div className="flex gap-3">
-                  <div
-                    className="h-12 w-24 rounded-lg shadow-sm"
-                    style={{ backgroundColor: form.primaryColor }}
-                  />
-                  <div
-                    className="h-12 w-24 rounded-lg shadow-sm"
-                    style={{ backgroundColor: form.accentColor }}
-                  />
+                  <div className="h-12 w-24 rounded-lg shadow-sm" style={{ backgroundColor: form.primary_color }} />
+                  <div className="h-12 w-24 rounded-lg shadow-sm" style={{ backgroundColor: form.accent_color }} />
                 </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* NOTIFICAÇÕES */}
         <TabsContent value="notificacoes">
           <Card>
             <CardHeader>
@@ -245,31 +231,28 @@ const SettingsPage = () => {
                   <p className="text-sm font-medium">Ativar notificações</p>
                   <p className="text-xs text-muted-foreground">Receba alertas de agendamentos e estoque</p>
                 </div>
-                <Switch
-                  checked={form.notificationsEnabled}
-                  onCheckedChange={(v) => setForm({ ...form, notificationsEnabled: v })}
-                />
+                <Switch checked={form.notifications_enabled} onCheckedChange={(v) => setForm({ ...form, notifications_enabled: v })} />
               </div>
               <div className="flex items-center justify-between rounded-lg border border-border p-4">
                 <div>
                   <p className="text-sm font-medium">Novos agendamentos</p>
                   <p className="text-xs text-muted-foreground">Quando uma cliente agendar</p>
                 </div>
-                <Switch defaultChecked disabled={!form.notificationsEnabled} />
+                <Switch defaultChecked disabled={!form.notifications_enabled} />
               </div>
               <div className="flex items-center justify-between rounded-lg border border-border p-4">
                 <div>
                   <p className="text-sm font-medium">Estoque baixo</p>
                   <p className="text-xs text-muted-foreground">Quando produto atingir mínimo</p>
                 </div>
-                <Switch defaultChecked disabled={!form.notificationsEnabled} />
+                <Switch defaultChecked disabled={!form.notifications_enabled} />
               </div>
               <div className="flex items-center justify-between rounded-lg border border-border p-4">
                 <div>
                   <p className="text-sm font-medium">Anamnese respondida</p>
                   <p className="text-xs text-muted-foreground">Quando cliente responder ficha</p>
                 </div>
-                <Switch defaultChecked disabled={!form.notificationsEnabled} />
+                <Switch defaultChecked disabled={!form.notifications_enabled} />
               </div>
             </CardContent>
           </Card>
