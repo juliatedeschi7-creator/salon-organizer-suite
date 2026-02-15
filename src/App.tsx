@@ -4,10 +4,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { SalonProvider } from "@/contexts/SalonContext";
+import { SalonProvider, useSalon } from "@/contexts/SalonContext";
 import AppLayout from "@/components/AppLayout";
 import AuthPage from "@/pages/AuthPage";
 import PendingApprovalPage from "@/pages/PendingApprovalPage";
+import CreateSalonPage from "@/pages/CreateSalonPage";
 import DashboardPage from "@/pages/DashboardPage";
 import AgendaPage from "@/pages/AgendaPage";
 import ClientesPage from "@/pages/ClientesPage";
@@ -25,9 +26,10 @@ import { Loader2 } from "lucide-react";
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
-  const { isAuthenticated, isApproved, isLoading } = useAuth();
+  const { isAuthenticated, isApproved, isLoading, role } = useAuth();
+  const { salon, isLoading: salonLoading } = useSalon();
 
-  if (isLoading) {
+  if (isLoading || (isAuthenticated && salonLoading)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -47,6 +49,15 @@ const AppRoutes = () => {
     return (
       <Routes>
         <Route path="*" element={<PendingApprovalPage />} />
+      </Routes>
+    );
+  }
+
+  // Dono without a salon → create one
+  if (role === "dono" && !salon) {
+    return (
+      <Routes>
+        <Route path="*" element={<CreateSalonPage />} />
       </Routes>
     );
   }

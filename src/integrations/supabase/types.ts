@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      clients: {
+        Row: {
+          birth_date: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          salon_id: string
+          updated_at: string
+        }
+        Insert: {
+          birth_date?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          salon_id: string
+          updated_at?: string
+        }
+        Update: {
+          birth_date?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          salon_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           approved_at: string | null
@@ -53,6 +97,89 @@ export type Database = {
         }
         Relationships: []
       }
+      salon_members: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          salon_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: string
+          salon_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          salon_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_members_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salons: {
+        Row: {
+          accent_color: string | null
+          address: string | null
+          client_link: string | null
+          created_at: string
+          description: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          notifications_enabled: boolean | null
+          owner_id: string
+          phone: string | null
+          primary_color: string | null
+          updated_at: string
+          working_hours: Json | null
+        }
+        Insert: {
+          accent_color?: string | null
+          address?: string | null
+          client_link?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          notifications_enabled?: boolean | null
+          owner_id: string
+          phone?: string | null
+          primary_color?: string | null
+          updated_at?: string
+          working_hours?: Json | null
+        }
+        Update: {
+          accent_color?: string | null
+          address?: string | null
+          client_link?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          notifications_enabled?: boolean | null
+          owner_id?: string
+          phone?: string | null
+          primary_color?: string | null
+          updated_at?: string
+          working_hours?: Json | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -87,6 +214,14 @@ export type Database = {
         Returns: boolean
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
+      is_salon_member: {
+        Args: { _salon_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_salon_owner: {
+        Args: { _salon_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "dono" | "funcionario" | "cliente"

@@ -41,7 +41,7 @@ const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
         </div>
         {!collapsed && (
           <div className="min-w-0">
-            <h1 className="truncate text-sm font-bold">{salon.name}</h1>
+            <h1 className="truncate text-sm font-bold">{salon?.name || "Organiza Salão"}</h1>
             <p className="truncate text-xs text-sidebar-foreground/60">Organiza Salão</p>
           </div>
         )}
