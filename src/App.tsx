@@ -20,6 +20,7 @@ import NotificationsPage from "@/pages/NotificationsPage";
 import AdminPage from "@/pages/AdminPage";
 import EmployeePage from "@/pages/EmployeePage";
 import ClientAreaPage from "@/pages/ClientAreaPage";
+import ClientInvitePage from "@/pages/ClientInvitePage";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -40,6 +41,7 @@ const AppRoutes = () => {
   if (!isAuthenticated) {
     return (
       <Routes>
+        <Route path="/convite/:linkId" element={<ClientInvitePage />} />
         <Route path="*" element={<AuthPage />} />
       </Routes>
     );

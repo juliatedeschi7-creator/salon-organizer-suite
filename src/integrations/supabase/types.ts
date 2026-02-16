@@ -206,6 +206,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_salon_by_client_link: {
+        Args: { _link: string }
+        Returns: {
+          id: string
+          logo_url: string
+          name: string
+          primary_color: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
