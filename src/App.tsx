@@ -11,6 +11,7 @@ import PendingApprovalPage from "@/pages/PendingApprovalPage";
 import CreateSalonPage from "@/pages/CreateSalonPage";
 import DashboardPage from "@/pages/DashboardPage";
 import AgendaPage from "@/pages/AgendaPage";
+import ServicesPage from "@/pages/ServicesPage";
 import ClientesPage from "@/pages/ClientesPage";
 import AnamnesesPage from "@/pages/AnamnesesPage";
 import EstoquePage from "@/pages/EstoquePage";
@@ -69,6 +70,7 @@ const AppRoutes = () => {
       <Route element={<AppLayout />}>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/agenda" element={<AgendaPage />} />
+        <Route path="/servicos" element={<ServicesPage />} />
         <Route path="/clientes" element={<ClientesPage />} />
         <Route path="/anamnese" element={<AnamnesesPage />} />
         <Route path="/estoque" element={<EstoquePage />} />

@@ -14,6 +14,111 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointments: {
+        Row: {
+          appointment_date: string
+          client_user_id: string
+          created_at: string
+          end_time: string
+          id: string
+          notes: string | null
+          salon_id: string
+          service_id: string
+          start_time: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_date: string
+          client_user_id: string
+          created_at?: string
+          end_time: string
+          id?: string
+          notes?: string | null
+          salon_id: string
+          service_id: string
+          start_time: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_date?: string
+          client_user_id?: string
+          created_at?: string
+          end_time?: string
+          id?: string
+          notes?: string | null
+          salon_id?: string
+          service_id?: string
+          start_time?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      available_slots: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          is_active: boolean
+          salon_id: string
+          service_id: string
+          start_time: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          is_active?: boolean
+          salon_id: string
+          service_id: string
+          start_time: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          salon_id?: string
+          service_id?: string
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "available_slots_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "available_slots_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           birth_date: string | null
@@ -51,6 +156,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "clients_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          reference_id: string | null
+          salon_id: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          reference_id?: string | null
+          salon_id: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          reference_id?: string | null
+          salon_id?: string
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_salon_id_fkey"
             columns: ["salon_id"]
             isOneToOne: false
             referencedRelation: "salons"
@@ -179,6 +328,50 @@ export type Database = {
           working_hours?: Json | null
         }
         Relationships: []
+      }
+      services: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_minutes: number
+          id: string
+          is_active: boolean
+          name: string
+          price: number | null
+          salon_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          price?: number | null
+          salon_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number | null
+          salon_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
