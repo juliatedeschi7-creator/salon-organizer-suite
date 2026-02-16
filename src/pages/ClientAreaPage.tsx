@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Calendar, FileText, Package, Clock, Plus, Loader2, Bell } from "lucide-react";
+import { Calendar, FileText, Package, Clock, Plus, Loader2, Bell, X } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -118,6 +118,23 @@ const ClientAreaPage = () => {
     setBookOpen(false);
     setSelectedService(""); setSelectedDate(""); setSelectedSlot("");
     setSubmitting(false);
+    fetchData();
+  };
+
+  const handleCancel = async (appointmentId: string, serviceId: string) => {
+    if (!salon || !user) return;
+    const { error } = await supabase.from("appointments").update({ status: "cancelado" }).eq("id", appointmentId);
+    if (error) { toast.error(error.message); return; }
+    const serviceName = services.find((s) => s.id === serviceId)?.name || "Serviço";
+    await supabase.from("notifications").insert({
+      user_id: salon.owner_id,
+      salon_id: salon.id,
+      type: "agendamento_cancelado",
+      title: "Agendamento cancelado ❌",
+      message: `${profile?.name || "Cliente"} cancelou o agendamento de ${serviceName}.`,
+      reference_id: appointmentId,
+    });
+    toast.success("Agendamento cancelado.");
     fetchData();
   };
 
@@ -257,9 +274,16 @@ const ClientAreaPage = () => {
                       </p>
                     </div>
                   </div>
-                  <Badge variant="outline" className={statusMap[a.status]?.className}>
-                    {statusMap[a.status]?.label}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {(a.status === "pendente" || a.status === "aprovado") && (
+                      <Button size="sm" variant="outline" className="gap-1 text-destructive hover:bg-destructive/10" onClick={() => handleCancel(a.id, a.service_id)}>
+                        <X className="h-3 w-3" /> Cancelar
+                      </Button>
+                    )}
+                    <Badge variant="outline" className={statusMap[a.status]?.className}>
+                      {statusMap[a.status]?.label}
+                    </Badge>
+                  </div>
                 </div>
               ))}
             </div>

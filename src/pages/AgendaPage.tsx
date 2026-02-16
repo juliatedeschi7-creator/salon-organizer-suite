@@ -102,21 +102,28 @@ const AgendaPage = () => {
     if (error) { toast.error("Erro ao atualizar: " + error.message); return; }
 
     // Notify client
-    const title = newStatus === "aprovado" ? "Agendamento confirmado! ✅" : "Agendamento recusado";
-    const message = newStatus === "aprovado"
-      ? `Seu agendamento de ${serviceName} foi aprovado pelo salão.`
-      : `Seu agendamento de ${serviceName} foi recusado pelo salão.`;
+    const titleMap: Record<string, string> = {
+      aprovado: "Agendamento confirmado! ✅",
+      recusado: "Agendamento recusado",
+      concluido: "Atendimento concluído! ✨",
+    };
+    const messageMap: Record<string, string> = {
+      aprovado: `Seu agendamento de ${serviceName} foi aprovado pelo salão.`,
+      recusado: `Seu agendamento de ${serviceName} foi recusado pelo salão.`,
+      concluido: `Seu atendimento de ${serviceName} foi concluído. Obrigado!`,
+    };
 
     await supabase.from("notifications").insert({
       user_id: clientUserId,
       salon_id: salon.id,
-      type: newStatus === "aprovado" ? "agendamento_aprovado" : "agendamento_recusado",
-      title,
-      message,
+      type: newStatus === "concluido" ? "agendamento_concluido" : newStatus === "aprovado" ? "agendamento_aprovado" : "agendamento_recusado",
+      title: titleMap[newStatus] || "Atualização",
+      message: messageMap[newStatus] || `Seu agendamento de ${serviceName} foi atualizado.`,
       reference_id: appointmentId,
     });
 
-    toast.success(newStatus === "aprovado" ? "Agendamento aprovado!" : "Agendamento recusado.");
+    const toastMap: Record<string, string> = { aprovado: "Agendamento aprovado!", recusado: "Agendamento recusado.", concluido: "Atendimento concluído!" };
+    toast.success(toastMap[newStatus] || "Status atualizado.");
     fetchAppointments();
   };
 
@@ -198,9 +205,16 @@ const AgendaPage = () => {
                       <p className="text-xs text-muted-foreground">{a.service_name}</p>
                     </div>
                   </div>
-                  <Badge variant="outline" className={statusMap[a.status]?.className}>
-                    {statusMap[a.status]?.label}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {a.status === "aprovado" && (
+                      <Button size="sm" variant="outline" className="gap-1 text-green-600 hover:bg-green-50" onClick={() => handleUpdateStatus(a.id, "concluido", a.client_user_id, a.service_name || "")}>
+                        <Check className="h-3 w-3" /> Concluir
+                      </Button>
+                    )}
+                    <Badge variant="outline" className={statusMap[a.status]?.className}>
+                      {statusMap[a.status]?.label}
+                    </Badge>
+                  </div>
                 </div>
               ))}
             </div>
@@ -227,9 +241,16 @@ const AgendaPage = () => {
                     <p className="text-xs text-muted-foreground">{a.service_name}</p>
                   </div>
                 </div>
-                <Badge variant="outline" className={statusMap[a.status]?.className}>
-                  {statusMap[a.status]?.label}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  {a.status === "aprovado" && (
+                    <Button size="sm" variant="outline" className="gap-1 text-green-600 hover:bg-green-50" onClick={() => handleUpdateStatus(a.id, "concluido", a.client_user_id, a.service_name || "")}>
+                      <Check className="h-3 w-3" /> Concluir
+                    </Button>
+                  )}
+                  <Badge variant="outline" className={statusMap[a.status]?.className}>
+                    {statusMap[a.status]?.label}
+                  </Badge>
+                </div>
               </div>
             ))}
           </CardContent>
