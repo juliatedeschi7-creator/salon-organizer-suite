@@ -10,6 +10,7 @@ import {
   UserCircle,
   ClipboardList,
   Bell,
+  Scissors,
   LucideIcon,
 } from "lucide-react";
 
@@ -32,6 +33,12 @@ export const navItems: NavItem[] = [
     path: "/agenda",
     icon: Calendar,
     roles: ["dono", "funcionario"],
+  },
+  {
+    label: "Serviços",
+    path: "/servicos",
+    icon: Scissors,
+    roles: ["dono"],
   },
   {
     label: "Clientes",
