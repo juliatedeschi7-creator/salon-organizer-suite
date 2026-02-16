@@ -141,14 +141,32 @@ const SettingsPage = () => {
               </CardTitle>
               <CardDescription>URL personalizada para suas clientes acessarem</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">organiza.app/</span>
+                <span className="text-sm text-muted-foreground">{window.location.origin}/convite/</span>
                 <Input
                   className="max-w-xs"
                   value={form.client_link}
                   onChange={(e) => setForm({ ...form, client_link: e.target.value.replace(/\s/g, "-").toLowerCase() })}
                 />
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  readOnly
+                  value={`${window.location.origin}/convite/${form.client_link}`}
+                  className="text-xs"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/convite/${form.client_link}`);
+                    toast.success("Link copiado!");
+                  }}
+                >
+                  Copiar
+                </Button>
               </div>
             </CardContent>
           </Card>
