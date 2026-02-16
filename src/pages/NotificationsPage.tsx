@@ -1,320 +1,123 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 import {
   Bell,
   Send,
   Clock,
-  Package,
-  Plus,
-  Users,
-  Search,
   Calendar,
   CheckCircle2,
   XCircle,
-  Filter,
+  Search,
+  Loader2,
+  Package,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useSalon } from "@/contexts/SalonContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-
-// ── Mock data ──
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Notification {
   id: string;
-  type: "lembrete" | "pacote" | "personalizada";
+  user_id: string;
+  salon_id: string;
+  type: string;
   title: string;
   message: string;
-  sentAt: string;
-  status: "enviado" | "falhou" | "agendado";
-  recipients: string[];
-  segment?: string;
+  is_read: boolean;
+  reference_id: string | null;
+  created_at: string;
 }
 
-interface AutoReminder {
-  id: string;
-  type: string;
-  enabled: boolean;
-  description: string;
-  timing: string;
-}
-
-const mockHistory: Notification[] = [
-  {
-    id: "1",
-    type: "lembrete",
-    title: "Lembrete de atendimento",
-    message: "Olá Ana! Seu atendimento de Manicure é amanhã às 14:00.",
-    sentAt: "2026-02-09 08:00",
-    status: "enviado",
-    recipients: ["Ana Costa"],
-  },
-  {
-    id: "2",
-    type: "pacote",
-    title: "Pacote próximo do vencimento",
-    message: "Seu pacote de Hidratação Capilar vence em 5 dias. Agende sua sessão!",
-    sentAt: "2026-02-08 10:00",
-    status: "enviado",
-    recipients: ["Beatriz Lima"],
-  },
-  {
-    id: "3",
-    type: "personalizada",
-    title: "Promoção de Fevereiro",
-    message: "Aproveite 20% de desconto em todos os serviços de estética!",
-    sentAt: "2026-02-07 09:00",
-    status: "enviado",
-    recipients: ["Todas as clientes"],
-    segment: "todas",
-  },
-  {
-    id: "4",
-    type: "lembrete",
-    title: "Lembrete de atendimento",
-    message: "Olá Carla! Seu atendimento de Corte é amanhã às 10:00.",
-    sentAt: "2026-02-06 08:00",
-    status: "falhou",
-    recipients: ["Carla Mendes"],
-  },
-  {
-    id: "5",
-    type: "personalizada",
-    title: "Novidade: Extensão de cílios",
-    message: "Agora oferecemos extensão de cílios! Agende pelo link.",
-    sentAt: "2026-02-05 11:00",
-    status: "enviado",
-    recipients: ["Clientes de estética"],
-    segment: "estetica",
-  },
-];
-
-const mockAutoReminders: AutoReminder[] = [
-  { id: "1", type: "atendimento", enabled: true, description: "Lembrete 1 dia antes do atendimento", timing: "24h antes" },
-  { id: "2", type: "pacote_vencimento", enabled: true, description: "Aviso de pacote próximo do vencimento", timing: "5 dias antes" },
-  { id: "3", type: "pacote_sessoes", enabled: false, description: "Aviso de poucas sessões restantes", timing: "2 sessões restantes" },
-  { id: "4", type: "aniversario", enabled: false, description: "Mensagem de aniversário para a cliente", timing: "No dia" },
-];
-
-const mockClients = [
-  { id: "1", name: "Ana Costa", category: "manicure" },
-  { id: "2", name: "Beatriz Lima", category: "cabelo" },
-  { id: "3", name: "Carla Mendes", category: "estetica" },
-  { id: "4", name: "Diana Souza", category: "manicure" },
-  { id: "5", name: "Eva Rodrigues", category: "cabelo" },
-];
-
-const segments = [
-  { value: "todas", label: "Todas as clientes" },
-  { value: "manicure", label: "Clientes de manicure" },
-  { value: "cabelo", label: "Clientes de cabelo" },
-  { value: "estetica", label: "Clientes de estética" },
-  { value: "aniversariantes", label: "Aniversariantes do mês" },
-  { value: "inativos", label: "Clientes inativos (30+ dias)" },
-];
-
-// ── Components ──
-
-const StatusBadge = ({ status }: { status: Notification["status"] }) => {
-  const map = {
-    enviado: { label: "Enviado", className: "bg-[hsl(var(--salon-success))]/15 text-[hsl(var(--salon-success))] border-[hsl(var(--salon-success))]/30" },
-    falhou: { label: "Falhou", className: "bg-destructive/15 text-destructive border-destructive/30" },
-    agendado: { label: "Agendado", className: "bg-[hsl(var(--salon-warning))]/15 text-[hsl(var(--salon-warning))] border-[hsl(var(--salon-warning))]/30" },
-  };
-  const s = map[status];
-  return <Badge variant="outline" className={s.className}>{s.label}</Badge>;
-};
-
-const TypeBadge = ({ type }: { type: Notification["type"] }) => {
-  const map = {
-    lembrete: { label: "Lembrete", className: "bg-primary/15 text-primary border-primary/30" },
-    pacote: { label: "Pacote", className: "bg-accent/15 text-accent border-accent/30" },
-    personalizada: { label: "Personalizada", className: "bg-secondary text-secondary-foreground border-border" },
-  };
-  const t = map[type];
-  return <Badge variant="outline" className={t.className}>{t.label}</Badge>;
+const typeLabelMap: Record<string, { label: string; className: string }> = {
+  novo_agendamento: { label: "Agendamento", className: "bg-primary/15 text-primary border-primary/30" },
+  agendamento_aprovado: { label: "Aprovado", className: "bg-green-500/15 text-green-700 border-green-500/30" },
+  agendamento_recusado: { label: "Recusado", className: "bg-destructive/15 text-destructive border-destructive/30" },
 };
 
 const NotificationsPage = () => {
-  const [history, setHistory] = useState(mockHistory);
-  const [reminders, setReminders] = useState(mockAutoReminders);
+  const { salon } = useSalon();
+  const { user } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState<string>("todos");
-  const [newOpen, setNewOpen] = useState(false);
 
-  // New notification form
-  const [newTitle, setNewTitle] = useState("");
-  const [newMessage, setNewMessage] = useState("");
-  const [newSegment, setNewSegment] = useState("todas");
-  const [selectedClients, setSelectedClients] = useState<string[]>([]);
-  const [sendMode, setSendMode] = useState<"segment" | "individual">("segment");
+  const fetchNotifications = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
 
-  const toggleReminder = (id: string) => {
-    setReminders((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r))
-    );
-    toast.success("Configuração atualizada!");
+    if (error) { console.error(error); }
+    setNotifications((data || []) as Notification[]);
+    setLoading(false);
   };
 
-  const handleSend = () => {
-    if (!newTitle.trim() || !newMessage.trim()) {
-      toast.error("Preencha título e mensagem.");
-      return;
-    }
-    const recipients =
-      sendMode === "segment"
-        ? [segments.find((s) => s.value === newSegment)?.label ?? ""]
-        : mockClients.filter((c) => selectedClients.includes(c.id)).map((c) => c.name);
+  useEffect(() => { fetchNotifications(); }, [user]);
 
-    if (recipients.length === 0) {
-      toast.error("Selecione ao menos uma destinatária.");
-      return;
-    }
+  // Realtime
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("owner-notifications")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, (payload) => {
+        const n = payload.new as Notification;
+        toast.info(n.title, { description: n.message });
+        setNotifications((prev) => [n, ...prev]);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
 
-    const entry: Notification = {
-      id: String(Date.now()),
-      type: "personalizada",
-      title: newTitle,
-      message: newMessage,
-      sentAt: new Date().toISOString().slice(0, 16).replace("T", " "),
-      status: "enviado",
-      recipients,
-      segment: sendMode === "segment" ? newSegment : undefined,
-    };
-    setHistory((prev) => [entry, ...prev]);
-    setNewTitle("");
-    setNewMessage("");
-    setSelectedClients([]);
-    setNewOpen(false);
-    toast.success(`Notificação enviada para ${recipients.length} destinatária(s)!`);
+  const markAsRead = async (id: string) => {
+    await supabase.from("notifications").update({ is_read: true }).eq("id", id);
+    setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n));
   };
 
-  const filtered = history.filter((n) => {
-    const matchSearch =
-      n.title.toLowerCase().includes(search.toLowerCase()) ||
-      n.recipients.some((r) => r.toLowerCase().includes(search.toLowerCase()));
-    const matchType = filterType === "todos" || n.type === filterType;
-    return matchSearch && matchType;
-  });
+  const markAllRead = async () => {
+    if (!user) return;
+    const unreadIds = notifications.filter((n) => !n.is_read).map((n) => n.id);
+    if (unreadIds.length === 0) return;
+    await supabase.from("notifications").update({ is_read: true }).in("id", unreadIds);
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    toast.success("Todas marcadas como lidas!");
+  };
+
+  const filtered = notifications.filter((n) =>
+    n.title.toLowerCase().includes(search.toLowerCase()) ||
+    n.message.toLowerCase().includes(search.toLowerCase())
+  );
 
   const stats = {
-    total: history.length,
-    enviados: history.filter((n) => n.status === "enviado").length,
-    falhas: history.filter((n) => n.status === "falhou").length,
+    total: notifications.length,
+    unread: notifications.filter((n) => !n.is_read).length,
+    read: notifications.filter((n) => n.is_read).length,
   };
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Notificações</h1>
-          <p className="text-sm text-muted-foreground">Gerencie lembretes e comunicações com suas clientes</p>
+          <p className="text-sm text-muted-foreground">Acompanhe agendamentos e atualizações do salão</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={() => {
-              toast.success("🔔 Notificação de teste enviada com sucesso!", {
-                description: "Esta é uma notificação de teste para verificar o funcionamento.",
-              });
-            }}
-          >
-            <Bell className="h-4 w-4" />
-            Testar Notificação
+        {stats.unread > 0 && (
+          <Button variant="outline" size="sm" onClick={markAllRead}>
+            Marcar todas como lidas
           </Button>
-          <Dialog open={newOpen} onOpenChange={setNewOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Nova Notificação
-              </Button>
-            </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Enviar Notificação</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-2">
-              <div className="space-y-2">
-                <Label>Título</Label>
-                <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Ex: Promoção especial" />
-              </div>
-              <div className="space-y-2">
-                <Label>Mensagem</Label>
-                <Textarea value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Escreva a mensagem..." rows={3} />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Enviar para</Label>
-                <div className="flex gap-2">
-                  <Button size="sm" variant={sendMode === "segment" ? "default" : "outline"} onClick={() => setSendMode("segment")}>
-                    <Users className="mr-1 h-3 w-3" /> Segmento
-                  </Button>
-                  <Button size="sm" variant={sendMode === "individual" ? "default" : "outline"} onClick={() => setSendMode("individual")}>
-                    <Filter className="mr-1 h-3 w-3" /> Individual
-                  </Button>
-                </div>
-              </div>
-
-              {sendMode === "segment" ? (
-                <div className="space-y-2">
-                  <Label>Segmento</Label>
-                  <Select value={newSegment} onValueChange={setNewSegment}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {segments.map((s) => (
-                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-40 overflow-y-auto rounded-lg border border-border p-3">
-                  {mockClients.map((c) => (
-                    <label key={c.id} className="flex items-center gap-2 py-1 cursor-pointer">
-                      <Checkbox
-                        checked={selectedClients.includes(c.id)}
-                        onCheckedChange={(checked) =>
-                          setSelectedClients((prev) =>
-                            checked ? [...prev, c.id] : prev.filter((id) => id !== c.id)
-                          )
-                        }
-                      />
-                      <span className="text-sm">{c.name}</span>
-                      <Badge variant="outline" className="ml-auto text-xs">{c.category}</Badge>
-                    </label>
-                  ))}
-                </div>
-              )}
-
-              <Button onClick={handleSend} className="w-full gap-2">
-                <Send className="h-4 w-4" /> Enviar agora
-              </Button>
-            </div>
-          </DialogContent>
-          </Dialog>
-        </div>
+        )}
       </div>
 
       {/* Stats */}
@@ -322,132 +125,88 @@ const NotificationsPage = () => {
         <Card>
           <CardContent className="flex items-center gap-4 p-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-              <Send className="h-5 w-5 text-primary" />
+              <Bell className="h-5 w-5 text-primary" />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{stats.total}</p>
-              <p className="text-xs text-muted-foreground">Total enviadas</p>
+              <p className="text-xs text-muted-foreground">Total</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[hsl(var(--salon-success))]/10">
-              <CheckCircle2 className="h-5 w-5 text-[hsl(var(--salon-success))]" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-500/10">
+              <Clock className="h-5 w-5 text-yellow-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">{stats.enviados}</p>
-              <p className="text-xs text-muted-foreground">Entregues</p>
+              <p className="text-2xl font-bold text-foreground">{stats.unread}</p>
+              <p className="text-xs text-muted-foreground">Não lidas</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-destructive/10">
-              <XCircle className="h-5 w-5 text-destructive" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">{stats.falhas}</p>
-              <p className="text-xs text-muted-foreground">Falhas</p>
+              <p className="text-2xl font-bold text-foreground">{stats.read}</p>
+              <p className="text-xs text-muted-foreground">Lidas</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="historico" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="historico">Histórico</TabsTrigger>
-          <TabsTrigger value="automaticas">Automáticas</TabsTrigger>
-        </TabsList>
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input className="pl-9" placeholder="Buscar notificações..." value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
 
-        {/* Histórico */}
-        <TabsContent value="historico" className="space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" placeholder="Buscar por título ou destinatária..." value={search} onChange={(e) => setSearch(e.target.value)} />
-            </div>
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os tipos</SelectItem>
-                <SelectItem value="lembrete">Lembretes</SelectItem>
-                <SelectItem value="pacote">Pacotes</SelectItem>
-                <SelectItem value="personalizada">Personalizadas</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Título</TableHead>
-                    <TableHead className="hidden md:table-cell">Destinatárias</TableHead>
-                    <TableHead className="hidden sm:table-cell">Enviado em</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                        Nenhuma notificação encontrada
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filtered.map((n) => (
-                      <TableRow key={n.id}>
-                        <TableCell><TypeBadge type={n.type} /></TableCell>
-                        <TableCell>
-                          <p className="font-medium text-sm">{n.title}</p>
-                          <p className="text-xs text-muted-foreground line-clamp-1">{n.message}</p>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell text-sm">{n.recipients.join(", ")}</TableCell>
-                        <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{n.sentAt}</TableCell>
-                        <TableCell><StatusBadge status={n.status} /></TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Automáticas */}
-        <TabsContent value="automaticas" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Clock className="h-5 w-5 text-primary" />
-                Lembretes Automáticos
-              </CardTitle>
-              <CardDescription>Configure quais notificações são enviadas automaticamente</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {reminders.map((r) => (
-                <div key={r.id} className="flex items-center justify-between rounded-lg border border-border p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                      {r.type === "atendimento" && <Calendar className="h-4 w-4 text-primary" />}
-                      {r.type.startsWith("pacote") && <Package className="h-4 w-4 text-primary" />}
-                      {r.type === "aniversario" && <Bell className="h-4 w-4 text-primary" />}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{r.description}</p>
-                      <p className="text-xs text-muted-foreground">Disparo: {r.timing}</p>
-                    </div>
+      {/* List */}
+      {filtered.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+            <Bell className="h-10 w-10 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              {notifications.length === 0 ? "Nenhuma notificação ainda" : "Nenhuma notificação encontrada"}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((n) => {
+            const typeInfo = typeLabelMap[n.type] || { label: n.type, className: "bg-muted text-muted-foreground border-border" };
+            return (
+              <Card
+                key={n.id}
+                className={`cursor-pointer transition hover:shadow-sm ${!n.is_read ? "border-primary/30 bg-primary/5" : ""}`}
+                onClick={() => !n.is_read && markAsRead(n.id)}
+              >
+                <CardContent className="flex items-start gap-4 p-4">
+                  <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${!n.is_read ? "bg-primary/10" : "bg-muted"}`}>
+                    {n.type === "novo_agendamento" ? <Calendar className="h-4 w-4 text-primary" /> :
+                     n.type === "agendamento_aprovado" ? <CheckCircle2 className="h-4 w-4 text-green-600" /> :
+                     n.type === "agendamento_recusado" ? <XCircle className="h-4 w-4 text-destructive" /> :
+                     <Bell className="h-4 w-4 text-muted-foreground" />}
                   </div>
-                  <Switch checked={r.enabled} onCheckedChange={() => toggleReminder(r.id)} />
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-foreground">{n.title}</p>
+                      <Badge variant="outline" className={`text-[10px] ${typeInfo.className}`}>{typeInfo.label}</Badge>
+                      {!n.is_read && <span className="h-2 w-2 rounded-full bg-primary" />}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{n.message}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {format(new Date(n.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
