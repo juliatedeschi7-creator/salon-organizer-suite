@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Scissors, Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
 const AuthPage = () => {
@@ -12,6 +13,7 @@ const AuthPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -19,9 +21,20 @@ const AuthPage = () => {
     setLoading(true);
 
     if (isLogin) {
+      // Switch storage based on "remember me"
+      if (!rememberMe) {
+        localStorage.removeItem("sb-kxgfpjvetdbummcsacol-auth-token");
+      }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         toast.error(error.message);
+      } else if (!rememberMe) {
+        // Copy token to sessionStorage and remove from localStorage
+        const key = Object.keys(localStorage).find(k => k.startsWith("sb-") && k.endsWith("-auth-token"));
+        if (key) {
+          sessionStorage.setItem(key, localStorage.getItem(key)!);
+          localStorage.removeItem(key);
+        }
       }
     } else {
       const { error } = await supabase.auth.signUp({
@@ -87,6 +100,18 @@ const AuthPage = () => {
                 minLength={6}
               />
             </div>
+            {isLogin && (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked === true)}
+                />
+                <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer">
+                  Manter-me conectado
+                </Label>
+              </div>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLogin ? "Entrar" : "Criar conta"}
