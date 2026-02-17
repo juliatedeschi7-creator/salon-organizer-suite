@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Calendar, FileText, Package, Clock, Plus, Loader2, Bell, X } from "lucide-react";
 import { toast } from "sonner";
+import ClientPackages from "@/components/client/ClientPackages";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -229,16 +230,10 @@ const ClientAreaPage = () => {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer transition hover:shadow-md">
-          <CardContent className="flex flex-col items-center gap-3 p-6 text-center">
-            <Package className="h-8 w-8 text-accent-foreground" />
-            <div>
-              <p className="font-semibold">Pacotes</p>
-              <p className="text-xs text-muted-foreground">Seus pacotes ativos</p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Meus Pacotes */}
+      <ClientPackages />
 
       {/* Notifications */}
       {notifications.length > 0 && (

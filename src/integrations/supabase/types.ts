@@ -119,6 +119,60 @@ export type Database = {
           },
         ]
       }
+      client_packages: {
+        Row: {
+          client_user_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          package_id: string
+          purchased_at: string
+          salon_id: string
+          sessions_used: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          client_user_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          package_id: string
+          purchased_at?: string
+          salon_id: string
+          sessions_used?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          client_user_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          package_id?: string
+          purchased_at?: string
+          salon_id?: string
+          sessions_used?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_packages_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_packages_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           birth_date: string | null
@@ -203,6 +257,66 @@ export type Database = {
             columns: ["salon_id"]
             isOneToOne: false
             referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      packages: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          price: number | null
+          rules: string | null
+          salon_id: string
+          service_id: string | null
+          total_sessions: number
+          updated_at: string
+          validity_days: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          price?: number | null
+          rules?: string | null
+          salon_id: string
+          service_id?: string | null
+          total_sessions?: number
+          updated_at?: string
+          validity_days?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number | null
+          rules?: string | null
+          salon_id?: string
+          service_id?: string | null
+          total_sessions?: number
+          updated_at?: string
+          validity_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "packages_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "packages_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
         ]
