@@ -39,6 +39,9 @@ const typeLabelMap: Record<string, { label: string; className: string }> = {
   novo_agendamento: { label: "Agendamento", className: "bg-primary/15 text-primary border-primary/30" },
   agendamento_aprovado: { label: "Aprovado", className: "bg-green-500/15 text-green-700 border-green-500/30" },
   agendamento_recusado: { label: "Recusado", className: "bg-destructive/15 text-destructive border-destructive/30" },
+  agendamento_cancelado: { label: "Cancelado", className: "bg-destructive/15 text-destructive border-destructive/30" },
+  agendamento_concluido: { label: "Concluído", className: "bg-green-500/15 text-green-700 border-green-500/30" },
+  promocao: { label: "Promoção 🎉", className: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30" },
 };
 
 const NotificationsPage = () => {
@@ -185,9 +188,11 @@ const NotificationsPage = () => {
               >
                 <CardContent className="flex items-start gap-4 p-4">
                   <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${!n.is_read ? "bg-primary/10" : "bg-muted"}`}>
-                    {n.type === "novo_agendamento" ? <Calendar className="h-4 w-4 text-primary" /> :
-                     n.type === "agendamento_aprovado" ? <CheckCircle2 className="h-4 w-4 text-green-600" /> :
-                     n.type === "agendamento_recusado" ? <XCircle className="h-4 w-4 text-destructive" /> :
+                     {n.type === "novo_agendamento" ? <Calendar className="h-4 w-4 text-primary" /> :
+                     n.type === "agendamento_aprovado" || n.type === "agendamento_concluido" ? <CheckCircle2 className="h-4 w-4 text-green-600" /> :
+                     n.type === "agendamento_recusado" || n.type === "agendamento_cancelado" ? <XCircle className="h-4 w-4 text-destructive" /> :
+                     n.type === "promocao" ? <Bell className="h-4 w-4 text-yellow-600" /> :
+                     n.type?.startsWith("lembrete_") ? <Clock className="h-4 w-4 text-primary" /> :
                      <Bell className="h-4 w-4 text-muted-foreground" />}
                   </div>
                   <div className="flex-1 space-y-1">

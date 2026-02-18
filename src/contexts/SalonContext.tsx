@@ -16,6 +16,7 @@ interface Salon {
   accent_color: string;
   notifications_enabled: boolean;
   working_hours: any;
+  reminder_hours: number[];
   created_at: string;
   updated_at: string;
 }

@@ -406,6 +406,7 @@ export type Database = {
           owner_id: string
           phone: string | null
           primary_color: string | null
+          reminder_hours: Json | null
           updated_at: string
           working_hours: Json | null
         }
@@ -422,6 +423,7 @@ export type Database = {
           owner_id: string
           phone?: string | null
           primary_color?: string | null
+          reminder_hours?: Json | null
           updated_at?: string
           working_hours?: Json | null
         }
@@ -438,6 +440,7 @@ export type Database = {
           owner_id?: string
           phone?: string | null
           primary_color?: string | null
+          reminder_hours?: Json | null
           updated_at?: string
           working_hours?: Json | null
         }

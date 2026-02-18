@@ -7,20 +7,46 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera, Save, Link as LinkIcon, Clock, Bell, Palette, Loader2 } from "lucide-react";
+import { Camera, Save, Link as LinkIcon, Clock, Bell, Palette, Loader2, Plus, X, Send } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+
+const REMINDER_OPTIONS = [
+  { value: 1, label: "1 hora antes" },
+  { value: 2, label: "2 horas antes" },
+  { value: 6, label: "6 horas antes" },
+  { value: 12, label: "12 horas antes" },
+  { value: 24, label: "24 horas antes" },
+  { value: 48, label: "48 horas antes" },
+];
 
 const SettingsPage = () => {
   const { salon, updateSalon, isLoading } = useSalon();
+  const { user } = useAuth();
   const [form, setForm] = useState<any>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [sendingNotif, setSendingNotif] = useState(false);
+  const [notifForm, setNotifForm] = useState({ title: "", message: "", target: "all" });
+  const [salonMembers, setSalonMembers] = useState<any[]>([]);
 
   useEffect(() => {
     if (salon) {
-      setForm({ ...salon });
+      setForm({ ...salon, reminder_hours: salon.reminder_hours ?? [24, 2] });
       setLogoPreview(salon.logo_url ?? null);
     }
+  }, [salon]);
+
+  useEffect(() => {
+    if (!salon) return;
+    supabase
+      .from("salon_members")
+      .select("user_id, role, profiles(name, email)")
+      .eq("salon_id", salon.id)
+      .eq("role", "cliente")
+      .then(({ data }) => setSalonMembers(data || []));
   }, [salon]);
 
   if (isLoading || !form) {
@@ -32,6 +58,7 @@ const SettingsPage = () => {
   }
 
   const workingHours = Array.isArray(form.working_hours) ? form.working_hours : [];
+  const reminderHours: number[] = Array.isArray(form.reminder_hours) ? form.reminder_hours : [24, 2];
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -48,6 +75,12 @@ const SettingsPage = () => {
     setForm((f: any) => ({ ...f, working_hours: updated }));
   };
 
+  const toggleReminder = (hours: number) => {
+    const current: number[] = reminderHours;
+    const updated = current.includes(hours) ? current.filter((h) => h !== hours) : [...current, hours].sort((a, b) => b - a);
+    setForm((f: any) => ({ ...f, reminder_hours: updated }));
+  };
+
   const handleSave = async () => {
     await updateSalon({
       name: form.name,
@@ -60,7 +93,38 @@ const SettingsPage = () => {
       accent_color: form.accent_color,
       notifications_enabled: form.notifications_enabled,
       working_hours: form.working_hours,
-    });
+      reminder_hours: form.reminder_hours,
+    } as any);
+  };
+
+  const handleSendNotification = async () => {
+    if (!salon || !notifForm.title || !notifForm.message) {
+      toast.error("Preencha título e mensagem.");
+      return;
+    }
+    setSendingNotif(true);
+    try {
+      const targets = notifForm.target === "all"
+        ? salonMembers.map((m) => m.user_id)
+        : [notifForm.target];
+
+      const inserts = targets.map((uid) => ({
+        user_id: uid,
+        salon_id: salon.id,
+        type: "promocao",
+        title: notifForm.title,
+        message: notifForm.message,
+      }));
+
+      const { error } = await supabase.from("notifications").insert(inserts);
+      if (error) throw error;
+      toast.success(`Notificação enviada para ${targets.length} cliente(s)!`);
+      setNotifForm({ title: "", message: "", target: "all" });
+    } catch (e: any) {
+      toast.error("Erro ao enviar: " + e.message);
+    } finally {
+      setSendingNotif(false);
+    }
   };
 
   return (
@@ -76,6 +140,7 @@ const SettingsPage = () => {
           <TabsTrigger value="horarios">Horários</TabsTrigger>
           <TabsTrigger value="visual">Visual</TabsTrigger>
           <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
+          <TabsTrigger value="enviar">Enviar Mensagem</TabsTrigger>
         </TabsList>
 
         <TabsContent value="geral" className="space-y-4">
@@ -235,7 +300,7 @@ const SettingsPage = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="notificacoes">
+        <TabsContent value="notificacoes" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -272,6 +337,106 @@ const SettingsPage = () => {
                 </div>
                 <Switch defaultChecked disabled={!form.notifications_enabled} />
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Clock className="h-5 w-5 text-primary" />
+                Lembretes Automáticos
+              </CardTitle>
+              <CardDescription>Escolha quando enviar lembretes de agendamento às clientes</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {REMINDER_OPTIONS.map((opt) => (
+                  <div
+                    key={opt.value}
+                    className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition hover:border-primary ${reminderHours.includes(opt.value) ? "border-primary bg-primary/5" : "border-border"}`}
+                    onClick={() => toggleReminder(opt.value)}
+                  >
+                    <Checkbox
+                      checked={reminderHours.includes(opt.value)}
+                      onCheckedChange={() => toggleReminder(opt.value)}
+                    />
+                    <span className="text-sm font-medium">{opt.label}</span>
+                  </div>
+                ))}
+              </div>
+              {reminderHours.length === 0 && (
+                <p className="text-xs text-muted-foreground">Nenhum lembrete ativo. Selecione pelo menos um.</p>
+              )}
+              {reminderHours.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Lembretes ativos: {reminderHours.sort((a, b) => b - a).map((h) => `${h}h antes`).join(", ")}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="enviar">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Send className="h-5 w-5 text-primary" />
+                Enviar Notificação Personalizada
+              </CardTitle>
+              <CardDescription>Envie promoções, novidades ou avisos diretamente para suas clientes</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Destinatário</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                  value={notifForm.target}
+                  onChange={(e) => setNotifForm({ ...notifForm, target: e.target.value })}
+                >
+                  <option value="all">Todas as clientes ({salonMembers.length})</option>
+                  {salonMembers.map((m: any) => (
+                    <option key={m.user_id} value={m.user_id}>
+                      {m.profiles?.name || m.profiles?.email || m.user_id}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Título</Label>
+                <Input
+                  placeholder="Ex: Promoção de aniversário 🎉"
+                  value={notifForm.title}
+                  onChange={(e) => setNotifForm({ ...notifForm, title: e.target.value })}
+                  maxLength={80}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Mensagem</Label>
+                <Textarea
+                  placeholder="Ex: Esse mês seu aniversário garante 20% de desconto em qualquer serviço!"
+                  value={notifForm.message}
+                  onChange={(e) => setNotifForm({ ...notifForm, message: e.target.value })}
+                  rows={4}
+                  maxLength={300}
+                />
+                <p className="text-xs text-muted-foreground text-right">{notifForm.message.length}/300</p>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/40 p-4 space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">Pré-visualização</p>
+                <p className="text-sm font-semibold">{notifForm.title || "Título da notificação"}</p>
+                <p className="text-xs text-muted-foreground">{notifForm.message || "Mensagem aparecerá aqui..."}</p>
+              </div>
+              <Button
+                className="w-full gap-2"
+                onClick={handleSendNotification}
+                disabled={sendingNotif || !notifForm.title || !notifForm.message || salonMembers.length === 0}
+              >
+                {sendingNotif ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {sendingNotif ? "Enviando..." : `Enviar para ${notifForm.target === "all" ? `todas (${salonMembers.length})` : "1 cliente"}`}
+              </Button>
+              {salonMembers.length === 0 && (
+                <p className="text-xs text-center text-muted-foreground">Nenhuma cliente cadastrada ainda.</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

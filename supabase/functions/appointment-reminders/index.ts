@@ -53,13 +53,24 @@ Deno.serve(async (req) => {
     const serviceMap: Record<string, string> = {};
     (services || []).forEach((s: any) => { serviceMap[s.id] = s.name; });
 
+    // Get salon reminder_hours configs
+    const salonIds = [...new Set(appointments.map((a) => a.salon_id))];
+    const { data: salons } = await supabase
+      .from("salons")
+      .select("id, reminder_hours")
+      .in("id", salonIds);
+    const salonReminderMap: Record<string, number[]> = {};
+    (salons || []).forEach((s: any) => {
+      salonReminderMap[s.id] = Array.isArray(s.reminder_hours) ? s.reminder_hours : [24, 2];
+    });
+
     // Check existing reminder notifications to avoid duplicates
     const appointmentIds = appointments.map((a) => a.id);
     const { data: existingNotifs } = await supabase
       .from("notifications")
       .select("reference_id, type")
       .in("reference_id", appointmentIds)
-      .in("type", ["lembrete_24h", "lembrete_2h"]);
+      .like("type", "lembrete_%");
 
     const existingSet = new Set(
       (existingNotifs || []).map((n: any) => `${n.reference_id}_${n.type}`)
@@ -74,36 +85,34 @@ Deno.serve(async (req) => {
 
       const serviceName = serviceMap[appt.service_id] || "Serviço";
       const timeStr = appt.start_time.slice(0, 5);
+      const reminderHours = salonReminderMap[appt.salon_id] || [24, 2];
 
-      // 24h reminder: between 23-25 hours before
-      if (diffHours > 0 && diffHours <= 25 && diffHours > 3) {
-        const key24 = `${appt.id}_lembrete_24h`;
-        if (!existingSet.has(key24)) {
-          notificationsToInsert.push({
-            user_id: appt.client_user_id,
-            salon_id: appt.salon_id,
-            type: "lembrete_24h",
-            title: "Lembrete: atendimento amanhã! 📅",
-            message: `Seu ${serviceName} está agendado para amanhã às ${timeStr}. Não esqueça!`,
-            reference_id: appt.id,
-          });
-          existingSet.add(key24);
-        }
-      }
+      // Sort descending so we check larger windows first
+      const sortedHours = [...reminderHours].sort((a, b) => b - a);
 
-      // 2h reminder: between 0-3 hours before
-      if (diffHours > 0 && diffHours <= 3) {
-        const key2 = `${appt.id}_lembrete_2h`;
-        if (!existingSet.has(key2)) {
-          notificationsToInsert.push({
-            user_id: appt.client_user_id,
-            salon_id: appt.salon_id,
-            type: "lembrete_2h",
-            title: "Seu atendimento é daqui a pouco! ⏰",
-            message: `${serviceName} às ${timeStr}. Estamos te esperando!`,
-            reference_id: appt.id,
-          });
-          existingSet.add(key2);
+      for (const targetHours of sortedHours) {
+        // Window: within the target hour range + 1h buffer past
+        const windowMin = targetHours - 1;
+        const windowMax = targetHours + 1;
+        if (diffHours > 0 && diffHours >= windowMin && diffHours <= windowMax) {
+          const typeKey = `lembrete_${targetHours}h`;
+          const notifKey = `${appt.id}_${typeKey}`;
+          if (!existingSet.has(notifKey)) {
+            const isLong = targetHours >= 12;
+            notificationsToInsert.push({
+              user_id: appt.client_user_id,
+              salon_id: appt.salon_id,
+              type: typeKey,
+              title: isLong
+                ? `Lembrete: atendimento em ${targetHours}h! 📅`
+                : `Seu atendimento é em breve! ⏰`,
+              message: isLong
+                ? `Seu ${serviceName} está agendado para daqui ${targetHours} horas às ${timeStr}. Não esqueça!`
+                : `${serviceName} às ${timeStr}. Estamos te esperando!`,
+              reference_id: appt.id,
+            });
+            existingSet.add(notifKey);
+          }
         }
       }
     }
