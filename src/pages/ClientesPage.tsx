@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, Phone, Mail, Plus, Loader2 } from "lucide-react";
+import { Users, Phone, Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface ClientRow {
@@ -24,7 +24,7 @@ const ClientesPage = () => {
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", phone: "" });
+  const [form, setForm] = useState({ name: "", phone: "" });
   const [saving, setSaving] = useState(false);
 
   const fetchClients = async () => {
@@ -49,14 +49,13 @@ const ClientesPage = () => {
     const { error } = await supabase.from("clients").insert({
       salon_id: salon.id,
       name: form.name.trim(),
-      email: form.email.trim(),
       phone: form.phone.trim(),
     });
     if (error) {
       toast.error("Erro: " + error.message);
     } else {
       toast.success("Cliente adicionada!");
-      setForm({ name: "", email: "", phone: "" });
+      setForm({ name: "", phone: "" });
       setOpen(false);
       fetchClients();
     }
@@ -90,16 +89,12 @@ const ClientesPage = () => {
             </DialogHeader>
             <form onSubmit={handleAdd} className="space-y-4">
               <div className="space-y-2">
-                <Label>Nome</Label>
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} autoFocus />
-              </div>
-              <div className="space-y-2">
-                <Label>E-mail</Label>
-                <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                <Label>Nome completo *</Label>
+                <Input placeholder="Nome e sobrenome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} autoFocus />
               </div>
               <div className="space-y-2">
                 <Label>Telefone</Label>
-                <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                <Input placeholder="(11) 99999-9999" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
               </div>
               <Button type="submit" className="w-full" disabled={saving || !form.name.trim()}>
                 {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
@@ -127,7 +122,6 @@ const ClientesPage = () => {
                   <div>
                     <p className="text-sm font-medium text-foreground">{c.name}</p>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      {c.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{c.email}</span>}
                       {c.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{c.phone}</span>}
                     </div>
                   </div>
