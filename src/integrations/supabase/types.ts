@@ -14,6 +14,129 @@ export type Database = {
   }
   public: {
     Tables: {
+      anamnesis_forms: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          salon_id: string
+          service_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          salon_id: string
+          service_type?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          salon_id?: string
+          service_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anamnesis_forms_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      anamnesis_questions: {
+        Row: {
+          created_at: string
+          form_id: string
+          id: string
+          is_required: boolean
+          options: Json | null
+          position: number
+          question_type: string
+          salon_id: string
+          text: string
+        }
+        Insert: {
+          created_at?: string
+          form_id: string
+          id?: string
+          is_required?: boolean
+          options?: Json | null
+          position?: number
+          question_type?: string
+          salon_id: string
+          text: string
+        }
+        Update: {
+          created_at?: string
+          form_id?: string
+          id?: string
+          is_required?: boolean
+          options?: Json | null
+          position?: number
+          question_type?: string
+          salon_id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anamnesis_questions_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "anamnesis_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      anamnesis_responses: {
+        Row: {
+          answered_at: string
+          answers: Json
+          client_user_id: string
+          form_id: string
+          form_version: number
+          id: string
+          salon_id: string
+        }
+        Insert: {
+          answered_at?: string
+          answers?: Json
+          client_user_id: string
+          form_id: string
+          form_version?: number
+          id?: string
+          salon_id: string
+        }
+        Update: {
+          answered_at?: string
+          answers?: Json
+          client_user_id?: string
+          form_id?: string
+          form_version?: number
+          id?: string
+          salon_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anamnesis_responses_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "anamnesis_forms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           appointment_date: string

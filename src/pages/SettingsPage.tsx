@@ -60,13 +60,21 @@ const SettingsPage = () => {
   const workingHours = Array.isArray(form.working_hours) ? form.working_hours : [];
   const reminderHours: number[] = Array.isArray(form.reminder_hours) ? form.reminder_hours : [24, 2];
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setLogoPreview(url);
-      setForm((f: any) => ({ ...f, logo_url: url }));
-    }
+    if (!file || !salon) return;
+    if (file.size > 2 * 1024 * 1024) { toast.error("Imagem muito grande. Máx 2MB."); return; }
+
+    const ext = file.name.split(".").pop();
+    const path = `${salon.id}/logo.${ext}`;
+
+    const { error: upErr } = await supabase.storage.from("salon-logos").upload(path, file, { upsert: true });
+    if (upErr) { toast.error("Erro ao enviar logo: " + upErr.message); return; }
+
+    const { data: { publicUrl } } = supabase.storage.from("salon-logos").getPublicUrl(path);
+    setLogoPreview(publicUrl);
+    setForm((f: any) => ({ ...f, logo_url: publicUrl }));
+    toast.success("Logo enviada! Salve as configurações para confirmar.");
   };
 
   const handleHoursChange = (index: number, field: string, value: string | boolean) => {

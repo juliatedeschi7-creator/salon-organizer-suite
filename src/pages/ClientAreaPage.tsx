@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Calendar, FileText, Package, Clock, Plus, Loader2, Bell, X } from "lucide-react";
 import { toast } from "sonner";
 import ClientPackages from "@/components/client/ClientPackages";
+import ClientAnamnesis from "@/components/client/ClientAnamnesis";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -39,6 +40,7 @@ const ClientAreaPage = () => {
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookOpen, setBookOpen] = useState(false);
+  const [anamnesisOpen, setAnamnesisOpen] = useState(false);
 
   // Booking form
   const [selectedService, setSelectedService] = useState("");
@@ -220,7 +222,7 @@ const ClientAreaPage = () => {
           </DialogContent>
         </Dialog>
 
-        <Card className="cursor-pointer transition hover:shadow-md">
+        <Card className="cursor-pointer transition hover:shadow-md" onClick={() => setAnamnesisOpen(true)}>
           <CardContent className="flex flex-col items-center gap-3 p-6 text-center">
             <FileText className="h-8 w-8 text-primary" />
             <div>
@@ -231,6 +233,8 @@ const ClientAreaPage = () => {
         </Card>
 
       </div>
+
+      <ClientAnamnesis open={anamnesisOpen} onOpenChange={setAnamnesisOpen} />
 
       {/* Meus Pacotes */}
       <ClientPackages />

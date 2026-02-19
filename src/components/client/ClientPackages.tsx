@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Package, CalendarClock, ListChecks, Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Package, CalendarClock, ListChecks, Loader2, History } from "lucide-react";
 import { format, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -36,6 +37,59 @@ const statusMap: Record<string, { label: string; className: string }> = {
   cancelado: { label: "Cancelado", className: "bg-destructive/15 text-destructive border-destructive/30" },
 };
 
+const PackageCard = ({ cp, pkg }: { cp: ClientPackageRow; pkg: PackageRow }) => {
+  const sessionsRemaining = pkg.total_sessions - cp.sessions_used;
+  const progress = (cp.sessions_used / pkg.total_sessions) * 100;
+  const expired = isPast(new Date(cp.expires_at));
+  const effectiveStatus = expired && cp.status === "ativo" ? "expirado" : cp.status;
+  const st = statusMap[effectiveStatus] || statusMap.ativo;
+
+  return (
+    <div className="rounded-lg border border-border p-4 space-y-3">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="font-semibold text-foreground">{pkg.name}</p>
+          {pkg.description && (
+            <p className="text-xs text-muted-foreground mt-0.5">{pkg.description}</p>
+          )}
+        </div>
+        <Badge variant="outline" className={st.className}>
+          {st.label}
+        </Badge>
+      </div>
+
+      <div className="space-y-1">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>Sessões: {cp.sessions_used} de {pkg.total_sessions}</span>
+          <span>{sessionsRemaining} restante(s)</span>
+        </div>
+        <Progress value={progress} className="h-2" />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <CalendarClock className="h-3.5 w-3.5" />
+          Comprado em {format(new Date(cp.purchased_at), "dd/MM/yyyy", { locale: ptBR })}
+        </span>
+        <span className="flex items-center gap-1">
+          <CalendarClock className="h-3.5 w-3.5" />
+          Válido até {format(new Date(cp.expires_at), "dd/MM/yyyy", { locale: ptBR })}
+        </span>
+        {pkg.price > 0 && <span>R$ {Number(pkg.price).toFixed(2)}</span>}
+      </div>
+
+      {pkg.rules && pkg.rules.trim() !== "" && (
+        <div className="rounded-md bg-muted/50 p-3">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-foreground mb-1">
+            <ListChecks className="h-3.5 w-3.5" /> Regras do pacote
+          </p>
+          <p className="text-xs text-muted-foreground whitespace-pre-line">{pkg.rules}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ClientPackages = () => {
   const { user } = useAuth();
   const { salon } = useSalon();
@@ -52,12 +106,11 @@ const ClientPackages = () => {
           .select("*")
           .eq("client_user_id", user.id)
           .eq("salon_id", salon.id)
-          .order("created_at", { ascending: false }),
+          .order("purchased_at", { ascending: false }),
         supabase
           .from("packages")
           .select("*")
-          .eq("salon_id", salon.id)
-          .eq("is_active", true),
+          .eq("salon_id", salon.id),
       ]);
       setClientPackages((cpRes.data || []) as ClientPackageRow[]);
       setPackages((pRes.data || []) as PackageRow[]);
@@ -78,6 +131,22 @@ const ClientPackages = () => {
 
   const packageMap = Object.fromEntries(packages.map((p) => [p.id, p]));
 
+  const activePackages = clientPackages.filter((cp) => {
+    const pkg = packageMap[cp.package_id];
+    if (!pkg) return false;
+    const expired = isPast(new Date(cp.expires_at));
+    const effectiveStatus = expired && cp.status === "ativo" ? "expirado" : cp.status;
+    return effectiveStatus === "ativo";
+  });
+
+  const historyPackages = clientPackages.filter((cp) => {
+    const pkg = packageMap[cp.package_id];
+    if (!pkg) return false;
+    const expired = isPast(new Date(cp.expires_at));
+    const effectiveStatus = expired && cp.status === "ativo" ? "expirado" : cp.status;
+    return effectiveStatus !== "ativo";
+  });
+
   return (
     <Card>
       <CardHeader>
@@ -88,72 +157,45 @@ const ClientPackages = () => {
       <CardContent>
         {clientPackages.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
-            Você ainda não possui pacotes ativos
+            Você ainda não possui pacotes
           </p>
         ) : (
-          <div className="space-y-4">
-            {clientPackages.map((cp) => {
-              const pkg = packageMap[cp.package_id];
-              if (!pkg) return null;
+          <Tabs defaultValue="ativos">
+            <TabsList className="mb-4">
+              <TabsTrigger value="ativos" className="gap-1.5">
+                <Package className="h-3.5 w-3.5" />
+                Ativos {activePackages.length > 0 && `(${activePackages.length})`}
+              </TabsTrigger>
+              <TabsTrigger value="historico" className="gap-1.5">
+                <History className="h-3.5 w-3.5" />
+                Histórico {historyPackages.length > 0 && `(${historyPackages.length})`}
+              </TabsTrigger>
+            </TabsList>
 
-              const sessionsRemaining = pkg.total_sessions - cp.sessions_used;
-              const progress = (cp.sessions_used / pkg.total_sessions) * 100;
-              const expired = isPast(new Date(cp.expires_at));
-              const effectiveStatus = expired && cp.status === "ativo" ? "expirado" : cp.status;
-              const st = statusMap[effectiveStatus] || statusMap.ativo;
+            <TabsContent value="ativos" className="space-y-4">
+              {activePackages.length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">Nenhum pacote ativo no momento</p>
+              ) : (
+                activePackages.map((cp) => {
+                  const pkg = packageMap[cp.package_id];
+                  if (!pkg) return null;
+                  return <PackageCard key={cp.id} cp={cp} pkg={pkg} />;
+                })
+              )}
+            </TabsContent>
 
-              return (
-                <div
-                  key={cp.id}
-                  className="rounded-lg border border-border p-4 space-y-3"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-semibold text-foreground">{pkg.name}</p>
-                      {pkg.description && (
-                        <p className="text-xs text-muted-foreground mt-0.5">{pkg.description}</p>
-                      )}
-                    </div>
-                    <Badge variant="outline" className={st.className}>
-                      {st.label}
-                    </Badge>
-                  </div>
-
-                  {/* Progress */}
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>Sessões: {cp.sessions_used} de {pkg.total_sessions}</span>
-                      <span>{sessionsRemaining} restante(s)</span>
-                    </div>
-                    <Progress value={progress} className="h-2" />
-                  </div>
-
-                  {/* Validity */}
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <CalendarClock className="h-3.5 w-3.5" />
-                      Válido até {format(new Date(cp.expires_at), "dd/MM/yyyy", { locale: ptBR })}
-                    </span>
-                    {pkg.price > 0 && (
-                      <span>R$ {Number(pkg.price).toFixed(2)}</span>
-                    )}
-                  </div>
-
-                  {/* Rules */}
-                  {pkg.rules && pkg.rules.trim() !== "" && (
-                    <div className="rounded-md bg-muted/50 p-3">
-                      <p className="flex items-center gap-1.5 text-xs font-medium text-foreground mb-1">
-                        <ListChecks className="h-3.5 w-3.5" /> Regras do pacote
-                      </p>
-                      <p className="text-xs text-muted-foreground whitespace-pre-line">
-                        {pkg.rules}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+            <TabsContent value="historico" className="space-y-4">
+              {historyPackages.length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">Nenhum pacote anterior</p>
+              ) : (
+                historyPackages.map((cp) => {
+                  const pkg = packageMap[cp.package_id];
+                  if (!pkg) return null;
+                  return <PackageCard key={cp.id} cp={cp} pkg={pkg} />;
+                })
+              )}
+            </TabsContent>
+          </Tabs>
         )}
       </CardContent>
     </Card>
