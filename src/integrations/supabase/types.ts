@@ -150,6 +150,9 @@ export type Database = {
           start_time: string
           status: string
           updated_at: string
+          whatsapp_code: string
+          whatsapp_confirmed_at: string | null
+          whatsapp_confirmed_by: string | null
         }
         Insert: {
           appointment_date: string
@@ -163,6 +166,9 @@ export type Database = {
           start_time: string
           status?: string
           updated_at?: string
+          whatsapp_code?: string
+          whatsapp_confirmed_at?: string | null
+          whatsapp_confirmed_by?: string | null
         }
         Update: {
           appointment_date?: string
@@ -176,6 +182,9 @@ export type Database = {
           start_time?: string
           status?: string
           updated_at?: string
+          whatsapp_code?: string
+          whatsapp_confirmed_at?: string | null
+          whatsapp_confirmed_by?: string | null
         }
         Relationships: [
           {

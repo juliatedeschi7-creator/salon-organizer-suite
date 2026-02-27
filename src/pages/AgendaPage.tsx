@@ -34,6 +34,8 @@ interface Appointment {
   created_at: string;
   service_name?: string;
   client_name?: string;
+  whatsapp_code?: string;
+  whatsapp_confirmed_at?: string | null;
 }
 
 const AgendaPage = () => {
@@ -124,6 +126,17 @@ const AgendaPage = () => {
     fetchAppointments();
   };
 
+  const handleConfirmWhatsApp = async (a: Appointment) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from("appointments")
+      .update({ whatsapp_confirmed_at: new Date().toISOString(), whatsapp_confirmed_by: user.id })
+      .eq("id", a.id);
+    if (error) { toast.error("Erro ao confirmar WhatsApp: " + error.message); return; }
+    toast.success("WhatsApp confirmado! Agora você pode aprovar o agendamento.");
+    fetchAppointments();
+  };
+
   const handleDelete = async () => {
     if (!deletingId) return;
     const { error } = await supabase.from("appointments").delete().eq("id", deletingId);
@@ -173,6 +186,7 @@ const AgendaPage = () => {
                 key={a.id}
                 appointment={a}
                 showDate
+                onConfirmWhatsApp={handleConfirmWhatsApp}
                 onApprove={(ap) => handleUpdateStatus(ap, "aprovado")}
                 onReject={(ap) => handleUpdateStatus(ap, "recusado")}
                 onEdit={(ap) => { setEditingAppointment(ap); setFormOpen(true); }}
