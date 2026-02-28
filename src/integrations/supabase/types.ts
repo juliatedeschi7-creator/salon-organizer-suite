@@ -145,6 +145,12 @@ export type Database = {
           end_time: string
           id: string
           notes: string | null
+          package_consumed_at: string | null
+          package_consumed_by: string | null
+          package_consumed_client_package_id: string | null
+          package_consumed_service_id: string | null
+          package_consumption_status: string
+          package_skip_reason: string
           salon_id: string
           service_id: string
           start_time: string
@@ -158,6 +164,12 @@ export type Database = {
           end_time: string
           id?: string
           notes?: string | null
+          package_consumed_at?: string | null
+          package_consumed_by?: string | null
+          package_consumed_client_package_id?: string | null
+          package_consumed_service_id?: string | null
+          package_consumption_status?: string
+          package_skip_reason?: string
           salon_id: string
           service_id: string
           start_time: string
@@ -171,6 +183,12 @@ export type Database = {
           end_time?: string
           id?: string
           notes?: string | null
+          package_consumed_at?: string | null
+          package_consumed_by?: string | null
+          package_consumed_client_package_id?: string | null
+          package_consumed_service_id?: string | null
+          package_consumption_status?: string
+          package_skip_reason?: string
           salon_id?: string
           service_id?: string
           start_time?: string
@@ -292,6 +310,68 @@ export type Database = {
             columns: ["salon_id"]
             isOneToOne: false
             referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_package_usages: {
+        Row: {
+          appointment_id: string | null
+          client_package_id: string
+          id: string
+          quantity: number
+          salon_id: string
+          service_id: string
+          used_at: string
+          used_by: string | null
+        }
+        Insert: {
+          appointment_id?: string | null
+          client_package_id: string
+          id?: string
+          quantity?: number
+          salon_id: string
+          service_id: string
+          used_at?: string
+          used_by?: string | null
+        }
+        Update: {
+          appointment_id?: string | null
+          client_package_id?: string
+          id?: string
+          quantity?: number
+          salon_id?: string
+          service_id?: string
+          used_at?: string
+          used_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_package_usages_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_package_usages_client_package_id_fkey"
+            columns: ["client_package_id"]
+            isOneToOne: false
+            referencedRelation: "client_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_package_usages_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_package_usages_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
         ]
