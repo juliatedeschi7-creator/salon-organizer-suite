@@ -63,19 +63,29 @@ const PackagesPage = () => {
         .order("name"),
       supabase
         .from("salon_members")
-        .select("user_id, profiles!inner(name, email)")
+        .select("user_id")
         .eq("salon_id", salon.id)
         .eq("role", "cliente"),
     ]);
     setPackages((pkgRes.data || []) as PackageModel[]);
-    const rawMembers = (membersRes.data || []) as any[];
-    setClients(
-      rawMembers.map((m) => ({
-        user_id: m.user_id,
-        name: m.profiles?.name || m.user_id,
-        email: m.profiles?.email || "",
-      }))
-    );
+
+    const memberUserIds = (membersRes.data || []).map((m: any) => m.user_id);
+    if (memberUserIds.length > 0) {
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("user_id, name, email")
+        .in("user_id", memberUserIds);
+      setClients(
+        (profilesData || []).map((p: any) => ({
+          user_id: p.user_id,
+          name: p.name || p.user_id,
+          email: p.email || "",
+        }))
+      );
+    } else {
+      setClients([]);
+    }
+
     setLoading(false);
   };
 
