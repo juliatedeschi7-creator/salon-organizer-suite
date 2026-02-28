@@ -7,8 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useSalon } from "@/contexts/SalonContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { generateWhatsAppCode } from "@/lib/whatsapp";
 
 interface AppointmentFormDialogProps {
   open: boolean;
@@ -39,6 +41,7 @@ interface ClientOption {
 
 const AppointmentFormDialog = ({ open, onOpenChange, onSuccess, appointment }: AppointmentFormDialogProps) => {
   const { salon } = useSalon();
+  const { user } = useAuth();
   const [services, setServices] = useState<ServiceOption[]>([]);
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [loading, setLoading] = useState(false);
@@ -100,7 +103,7 @@ const AppointmentFormDialog = ({ open, onOpenChange, onSuccess, appointment }: A
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!salon) return;
+    if (!salon || !user) return;
 
     const service = services.find((s) => s.id === serviceId);
     if (!service || !clientUserId || !date || !startTime) {
@@ -138,6 +141,7 @@ const AppointmentFormDialog = ({ open, onOpenChange, onSuccess, appointment }: A
         onOpenChange(false);
       }
     } else {
+      const now = new Date().toISOString();
       const { error } = await supabase.from("appointments").insert({
         salon_id: salon.id,
         service_id: serviceId,
@@ -147,6 +151,9 @@ const AppointmentFormDialog = ({ open, onOpenChange, onSuccess, appointment }: A
         end_time: endTime,
         notes: notes || "",
         status: "aprovado",
+        whatsapp_code: generateWhatsAppCode(),
+        whatsapp_confirmed_at: now,
+        whatsapp_confirmed_by: user.id,
       });
 
       if (error) {

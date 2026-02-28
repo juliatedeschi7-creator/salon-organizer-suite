@@ -9,16 +9,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Calendar, FileText, Package, Clock, Plus, Loader2, Bell, X } from "lucide-react";
+import { Calendar, FileText, Package, Clock, Plus, Loader2, Bell, X, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import ClientPackages from "@/components/client/ClientPackages";
 import ClientAnamnesis from "@/components/client/ClientAnamnesis";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { generateWhatsAppCode, buildWhatsAppLink } from "@/lib/whatsapp";
 
 interface Service { id: string; name: string; duration_minutes: number; price: number; }
 interface AvailableSlot { id: string; service_id: string; day_of_week: number; start_time: string; end_time: string; }
-interface AppointmentRow { id: string; appointment_date: string; start_time: string; end_time: string; status: string; service_id: string; }
+interface AppointmentRow { id: string; appointment_date: string; start_time: string; end_time: string; status: string; service_id: string; whatsapp_code: string; }
 interface NotificationRow { id: string; title: string; message: string; is_read: boolean; created_at: string; type: string; }
 
 const statusMap: Record<string, { label: string; className: string }> = {
@@ -47,6 +48,11 @@ const ClientAreaPage = () => {
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedSlot, setSelectedSlot] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // WhatsApp confirmation dialog (shown after booking)
+  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
+  const [lastBookingCode, setLastBookingCode] = useState("");
+  const [lastBookingInfo, setLastBookingInfo] = useState<{ serviceName: string; date: string; time: string } | null>(null);
 
   const fetchData = async () => {
     if (!salon || !user) return;
@@ -95,6 +101,8 @@ const ClientAreaPage = () => {
     const slot = slots.find((s) => s.id === selectedSlot);
     if (!slot) { setSubmitting(false); return; }
 
+    const code = generateWhatsAppCode();
+
     const { error } = await supabase.from("appointments").insert({
       salon_id: salon.id,
       client_user_id: user.id,
@@ -103,6 +111,7 @@ const ClientAreaPage = () => {
       start_time: slot.start_time,
       end_time: slot.end_time,
       status: "pendente",
+      whatsapp_code: code,
     });
 
     if (error) { toast.error(error.message); setSubmitting(false); return; }
@@ -117,11 +126,19 @@ const ClientAreaPage = () => {
       message: `${profile?.name || "Cliente"} agendou ${serviceName} para ${format(new Date(selectedDate + "T00:00:00"), "dd/MM/yyyy")}.`,
     });
 
-    toast.success("Agendamento solicitado! Aguarde a aprovação do salão.");
     setBookOpen(false);
     setSelectedService(""); setSelectedDate(""); setSelectedSlot("");
     setSubmitting(false);
     fetchData();
+
+    // Show WhatsApp confirmation dialog
+    setLastBookingCode(code);
+    setLastBookingInfo({
+      serviceName,
+      date: format(new Date(selectedDate + "T00:00:00"), "dd/MM/yyyy"),
+      time: slot.start_time.slice(0, 5),
+    });
+    setWhatsappDialogOpen(true);
   };
 
   const handleCancel = async (appointmentId: string, serviceId: string) => {
@@ -236,6 +253,54 @@ const ClientAreaPage = () => {
 
       <ClientAnamnesis open={anamnesisOpen} onOpenChange={setAnamnesisOpen} />
 
+      {/* WhatsApp Confirmation Dialog */}
+      <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-green-600" /> Confirmação pelo WhatsApp
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <p className="text-sm text-muted-foreground">
+              Seu pedido foi enviado! Para que o salão possa <strong>aprovar</strong> seu agendamento, você precisa enviar o código abaixo pelo WhatsApp.
+            </p>
+            <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 text-center">
+              <p className="text-xs text-muted-foreground mb-1">Seu código de confirmação</p>
+              <p className="text-3xl font-bold tracking-widest text-primary">{lastBookingCode}</p>
+            </div>
+            {salon?.phone ? (
+              <Button
+                className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => {
+                  const link = buildWhatsAppLink(
+                    salon.phone!,
+                    lastBookingCode,
+                    lastBookingInfo?.serviceName || "",
+                    lastBookingInfo?.date || "",
+                    lastBookingInfo?.time || ""
+                  );
+                  window.open(link, "_blank");
+                }}
+              >
+                <MessageCircle className="h-4 w-4" />
+                Enviar código pelo WhatsApp
+              </Button>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center">
+                Entre em contato com o salão e informe o código: <strong>{lastBookingCode}</strong>
+              </p>
+            )}
+            <p className="text-xs text-center text-muted-foreground">
+              O agendamento só será aprovado após o salão confirmar o recebimento do código.
+            </p>
+            <Button variant="outline" className="w-full" onClick={() => setWhatsappDialogOpen(false)}>
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Meus Pacotes */}
       <ClientPackages />
 
@@ -271,6 +336,11 @@ const ClientAreaPage = () => {
                       <p className="text-xs text-muted-foreground">
                         {format(new Date(a.appointment_date + "T00:00:00"), "dd/MM/yyyy")} às {a.start_time?.slice(0, 5)}
                       </p>
+                      {a.status === "pendente" && a.whatsapp_code && (
+                        <p className="text-xs text-green-700 font-medium mt-0.5">
+                          Código WhatsApp: <span className="tracking-wider">{a.whatsapp_code}</span>
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Check, X, Pencil, Trash2 } from "lucide-react";
+import { Clock, Check, X, Pencil, Trash2, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -18,6 +18,8 @@ interface Appointment {
   created_at: string;
   service_name?: string;
   client_name?: string;
+  whatsapp_code?: string;
+  whatsapp_confirmed_at?: string | null;
 }
 
 const statusMap: Record<string, { label: string; className: string }> = {
@@ -36,9 +38,12 @@ interface AppointmentCardProps {
   onComplete?: (a: Appointment) => void;
   onEdit?: (a: Appointment) => void;
   onDelete?: (a: Appointment) => void;
+  onConfirmWhatsApp?: (a: Appointment) => void;
 }
 
-const AppointmentCard = ({ appointment: a, showDate, onApprove, onReject, onComplete, onEdit, onDelete }: AppointmentCardProps) => {
+const AppointmentCard = ({ appointment: a, showDate, onApprove, onReject, onComplete, onEdit, onDelete, onConfirmWhatsApp }: AppointmentCardProps) => {
+  const whatsappConfirmed = !!a.whatsapp_confirmed_at;
+
   return (
     <div className="flex items-center justify-between rounded-lg border border-border p-3">
       <div className="flex items-center gap-3 min-w-0">
@@ -52,11 +57,29 @@ const AppointmentCard = ({ appointment: a, showDate, onApprove, onReject, onComp
         <div className="min-w-0">
           <p className="text-sm font-medium text-foreground truncate">{a.client_name}</p>
           <p className="text-xs text-muted-foreground truncate">{a.service_name}</p>
+          {a.status === "pendente" && a.whatsapp_code && (
+            <p className="text-xs text-muted-foreground">
+              Código: <span className="font-mono font-semibold tracking-wider">{a.whatsapp_code}</span>
+              {whatsappConfirmed && <span className="ml-1 text-green-600">✓ confirmado</span>}
+            </p>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-1.5 shrink-0 ml-2">
+        {a.status === "pendente" && !whatsappConfirmed && onConfirmWhatsApp && (
+          <Button size="sm" variant="outline" className="gap-1 text-green-600 hover:bg-green-50 h-8 px-2" onClick={() => onConfirmWhatsApp(a)}>
+            <MessageCircle className="h-3 w-3" /> Confirmar WhatsApp
+          </Button>
+        )}
         {a.status === "pendente" && onApprove && (
-          <Button size="sm" variant="outline" className="gap-1 text-green-600 hover:bg-green-50 h-8 px-2" onClick={() => onApprove(a)}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1 text-green-600 hover:bg-green-50 h-8 px-2 disabled:opacity-40"
+            onClick={() => onApprove(a)}
+            disabled={!whatsappConfirmed}
+            title={!whatsappConfirmed ? "Confirme o WhatsApp antes de aprovar" : undefined}
+          >
             <Check className="h-3 w-3" /> Aprovar
           </Button>
         )}
