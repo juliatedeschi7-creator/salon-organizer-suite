@@ -4,6 +4,7 @@ import {
   Calendar,
   Users,
   Package,
+  PackageOpen,
   DollarSign,
   Settings,
   ShieldCheck,
@@ -50,6 +51,12 @@ export const navItems: NavItem[] = [
     label: "Anamnese",
     path: "/anamnese",
     icon: ClipboardList,
+    roles: ["dono"],
+  },
+  {
+    label: "Pacotes",
+    path: "/pacotes",
+    icon: PackageOpen,
     roles: ["dono"],
   },
   {

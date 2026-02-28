@@ -14,6 +14,7 @@ import AgendaPage from "@/pages/AgendaPage";
 import ServicesPage from "@/pages/ServicesPage";
 import ClientesPage from "@/pages/ClientesPage";
 import AnamnesesPage from "@/pages/AnamnesesPage";
+import PacotesPage from "@/pages/PacotesPage";
 import EstoquePage from "@/pages/EstoquePage";
 import FinanceiroPage from "@/pages/FinanceiroPage";
 import SettingsPage from "@/pages/SettingsPage";
@@ -73,6 +74,7 @@ const AppRoutes = () => {
         <Route path="/servicos" element={<ServicesPage />} />
         <Route path="/clientes" element={<ClientesPage />} />
         <Route path="/anamnese" element={<AnamnesesPage />} />
+        <Route path="/pacotes" element={<PacotesPage />} />
         <Route path="/estoque" element={<EstoquePage />} />
         <Route path="/financeiro" element={<FinanceiroPage />} />
         <Route path="/configuracoes" element={<SettingsPage />} />

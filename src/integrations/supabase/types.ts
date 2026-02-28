@@ -242,6 +242,48 @@ export type Database = {
           },
         ]
       }
+      client_package_items: {
+        Row: {
+          client_package_id: string
+          created_at: string
+          id: string
+          quantity_total: number
+          quantity_used: number
+          service_id: string
+        }
+        Insert: {
+          client_package_id: string
+          created_at?: string
+          id?: string
+          quantity_total: number
+          quantity_used?: number
+          service_id: string
+        }
+        Update: {
+          client_package_id?: string
+          created_at?: string
+          id?: string
+          quantity_total?: number
+          quantity_used?: number
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_package_items_client_package_id_fkey"
+            columns: ["client_package_id"]
+            isOneToOne: false
+            referencedRelation: "client_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_package_items_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_packages: {
         Row: {
           client_user_id: string
@@ -380,6 +422,45 @@ export type Database = {
             columns: ["salon_id"]
             isOneToOne: false
             referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      package_items: {
+        Row: {
+          created_at: string
+          id: string
+          package_id: string
+          quantity: number
+          service_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          package_id: string
+          quantity: number
+          service_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          package_id?: string
+          quantity?: number
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_items_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_items_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
         ]
