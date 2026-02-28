@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import AppointmentCard from "@/components/agenda/AppointmentCard";
 import AppointmentFormDialog from "@/components/agenda/AppointmentFormDialog";
+import PackageConsumptionModal, { EligiblePackage } from "@/components/agenda/PackageConsumptionModal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +35,7 @@ interface Appointment {
   created_at: string;
   service_name?: string;
   client_name?: string;
+  package_consumption_status?: string;
 }
 
 const AgendaPage = () => {
@@ -44,6 +46,9 @@ const AgendaPage = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [consumptionAppointment, setConsumptionAppointment] = useState<Appointment | null>(null);
+  const [eligiblePackages, setEligiblePackages] = useState<EligiblePackage[]>([]);
+  const [consumptionLoading, setConsumptionLoading] = useState(false);
 
   const fetchAppointments = async () => {
     if (!salon) return;
@@ -124,6 +129,161 @@ const AgendaPage = () => {
     fetchAppointments();
   };
 
+  const handleCompleteAppointment = async (a: Appointment) => {
+    if (!salon || !user) return;
+
+    // If already decided, complete directly
+    if (a.package_consumption_status === "consumido" || a.package_consumption_status === "nao_consumir") {
+      await handleUpdateStatus(a, "concluido");
+      return;
+    }
+
+    // Query eligible active packages for this client + service
+    const now = new Date().toISOString();
+    const { data: clientPkgs, error } = await supabase
+      .from("client_packages")
+      .select("id, package_id, sessions_used, expires_at, status")
+      .eq("client_user_id", a.client_user_id)
+      .eq("salon_id", salon.id)
+      .eq("status", "ativo")
+      .gte("expires_at", now);
+
+    if (error) {
+      toast.error("Erro ao verificar pacotes: " + error.message);
+      return;
+    }
+
+    if (!clientPkgs || clientPkgs.length === 0) {
+      await handleUpdateStatus(a, "concluido");
+      return;
+    }
+
+    // Get package details to filter by service_id and check remaining sessions
+    const packageIds = clientPkgs.map((cp) => cp.package_id);
+    const { data: pkgDetails } = await supabase
+      .from("packages")
+      .select("id, name, service_id, total_sessions")
+      .in("id", packageIds)
+      .eq("service_id", a.service_id);
+
+    const eligible: EligiblePackage[] = (pkgDetails || []).flatMap((pkg) => {
+      const cp = clientPkgs.find((c) => c.package_id === pkg.id);
+      if (!cp) return [];
+      const remaining = pkg.total_sessions - cp.sessions_used;
+      if (remaining <= 0) return [];
+      return [{
+        clientPackageId: cp.id,
+        packageName: pkg.name,
+        sessionsUsed: cp.sessions_used,
+        totalSessions: pkg.total_sessions,
+        expiresAt: cp.expires_at,
+      }];
+    });
+
+    if (eligible.length === 0) {
+      await handleUpdateStatus(a, "concluido");
+      return;
+    }
+
+    setEligiblePackages(eligible);
+    setConsumptionAppointment(a);
+  };
+
+  const handleConfirmConsume = async (clientPackageId: string) => {
+    if (!consumptionAppointment || !salon || !user) return;
+    setConsumptionLoading(true);
+    try {
+      // Increment sessions_used
+      const cp = eligiblePackages.find((e) => e.clientPackageId === clientPackageId);
+      if (!cp) {
+        toast.error("Pacote selecionado não encontrado.");
+        return;
+      }
+
+      const { error: cpError } = await supabase
+        .from("client_packages")
+        .update({ sessions_used: cp.sessionsUsed + 1 })
+        .eq("id", clientPackageId);
+      if (cpError) { toast.error("Erro ao consumir sessão: " + cpError.message); return; }
+
+      // Update appointment status + audit fields
+      const { error: apptError } = await supabase
+        .from("appointments")
+        .update({
+          status: "concluido",
+          package_consumption_status: "consumido",
+          package_consumed_client_package_id: clientPackageId,
+          package_consumed_service_id: consumptionAppointment.service_id,
+          package_consumed_at: new Date().toISOString(),
+          package_consumed_by: user.id,
+        })
+        .eq("id", consumptionAppointment.id);
+      if (apptError) { toast.error("Erro ao atualizar agendamento: " + apptError.message); return; }
+
+      // Insert usage log
+      const { error: usageError } = await supabase.from("client_package_usages").insert({
+        salon_id: salon.id,
+        client_package_id: clientPackageId,
+        service_id: consumptionAppointment.service_id,
+        appointment_id: consumptionAppointment.id,
+        quantity: 1,
+        used_by: user.id,
+      });
+      if (usageError) {
+        console.error("Erro ao registrar log de consumo:", usageError.message);
+      }
+
+      // Notify client
+      await supabase.from("notifications").insert({
+        user_id: consumptionAppointment.client_user_id,
+        salon_id: salon.id,
+        type: "agendamento_concluido",
+        title: "Atendimento concluído! ✨",
+        message: `Seu atendimento de ${consumptionAppointment.service_name} foi concluído. 1 sessão do pacote foi utilizada. Obrigado!`,
+        reference_id: consumptionAppointment.id,
+      });
+
+      toast.success("Atendimento concluído e sessão consumida do pacote!");
+      setConsumptionAppointment(null);
+      fetchAppointments();
+    } finally {
+      setConsumptionLoading(false);
+    }
+  };
+
+  const handleSkipConsumption = async (reason: string) => {
+    if (!consumptionAppointment || !salon || !user) return;
+    setConsumptionLoading(true);
+    try {
+      const { error } = await supabase
+        .from("appointments")
+        .update({
+          status: "concluido",
+          package_consumption_status: "nao_consumir",
+          package_skip_reason: reason,
+          package_consumed_by: user.id,
+          package_consumed_at: new Date().toISOString(),
+        })
+        .eq("id", consumptionAppointment.id);
+      if (error) { toast.error("Erro ao atualizar agendamento: " + error.message); return; }
+
+      await supabase.from("notifications").insert({
+        user_id: consumptionAppointment.client_user_id,
+        salon_id: salon.id,
+        type: "agendamento_concluido",
+        title: "Atendimento concluído! ✨",
+        message: `Seu atendimento de ${consumptionAppointment.service_name} foi concluído. Obrigado!`,
+        reference_id: consumptionAppointment.id,
+      });
+
+      toast.success("Atendimento concluído sem consumir sessão do pacote.");
+      setConsumptionAppointment(null);
+      fetchAppointments();
+    } finally {
+      setConsumptionLoading(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!deletingId) return;
     const { error } = await supabase.from("appointments").delete().eq("id", deletingId);
@@ -200,7 +360,7 @@ const AgendaPage = () => {
                 <AppointmentCard
                   key={a.id}
                   appointment={a}
-                  onComplete={(ap) => handleUpdateStatus(ap, "concluido")}
+                  onComplete={(ap) => handleCompleteAppointment(ap)}
                   onEdit={(ap) => { setEditingAppointment(ap); setFormOpen(true); }}
                   onDelete={(ap) => setDeletingId(ap.id)}
                 />
@@ -222,7 +382,7 @@ const AgendaPage = () => {
                 key={a.id}
                 appointment={a}
                 showDate
-                onComplete={(ap) => handleUpdateStatus(ap, "concluido")}
+                onComplete={(ap) => handleCompleteAppointment(ap)}
                 onEdit={(ap) => { setEditingAppointment(ap); setFormOpen(true); }}
                 onDelete={(ap) => setDeletingId(ap.id)}
               />
@@ -238,6 +398,19 @@ const AgendaPage = () => {
         onSuccess={fetchAppointments}
         appointment={editingAppointment}
       />
+
+      {/* Package Consumption Modal */}
+      {consumptionAppointment && (
+        <PackageConsumptionModal
+          open={!!consumptionAppointment}
+          onOpenChange={(open) => { if (!open) setConsumptionAppointment(null); }}
+          eligiblePackages={eligiblePackages}
+          serviceName={consumptionAppointment.service_name || "Serviço"}
+          onConfirmConsume={handleConfirmConsume}
+          onSkip={handleSkipConsumption}
+          loading={consumptionLoading}
+        />
+      )}
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
