@@ -12,6 +12,7 @@ import {
   Bell,
   Scissors,
   LucideIcon,
+  Archive,
 } from "lucide-react";
 
 export interface NavItem {
@@ -44,6 +45,12 @@ export const navItems: NavItem[] = [
     label: "Clientes",
     path: "/clientes",
     icon: Users,
+    roles: ["dono"],
+  },
+  {
+    label: "Pacotes",
+    path: "/pacotes",
+    icon: Archive,
     roles: ["dono"],
   },
   {

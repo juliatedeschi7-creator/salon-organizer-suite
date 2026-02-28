@@ -28,18 +28,37 @@ interface ClientPackageRow {
   purchased_at: string;
   expires_at: string;
   status: string;
+  source?: string;
+  legacy_notes?: string;
+}
+
+interface ClientPackageItem {
+  id: string;
+  client_package_id: string;
+  service_name: string;
+  quantity_total: number;
+  quantity_used: number;
 }
 
 const statusMap: Record<string, { label: string; className: string }> = {
   ativo: { label: "Ativo", className: "bg-green-500/15 text-green-700 border-green-500/30" },
   concluido: { label: "Concluído", className: "bg-primary/15 text-primary border-primary/30" },
+  finalizado: { label: "Finalizado", className: "bg-primary/15 text-primary border-primary/30" },
   expirado: { label: "Expirado", className: "bg-muted text-muted-foreground border-border" },
   cancelado: { label: "Cancelado", className: "bg-destructive/15 text-destructive border-destructive/30" },
 };
 
-const PackageCard = ({ cp, pkg }: { cp: ClientPackageRow; pkg: PackageRow }) => {
+const PackageCard = ({
+  cp,
+  pkg,
+  items,
+}: {
+  cp: ClientPackageRow;
+  pkg: PackageRow;
+  items: ClientPackageItem[];
+}) => {
   const sessionsRemaining = pkg.total_sessions - cp.sessions_used;
-  const progress = (cp.sessions_used / pkg.total_sessions) * 100;
+  const progress = pkg.total_sessions > 0 ? (cp.sessions_used / pkg.total_sessions) * 100 : 0;
   const expired = isPast(new Date(cp.expires_at));
   const effectiveStatus = expired && cp.status === "ativo" ? "expirado" : cp.status;
   const st = statusMap[effectiveStatus] || statusMap.ativo;
@@ -58,13 +77,30 @@ const PackageCard = ({ cp, pkg }: { cp: ClientPackageRow; pkg: PackageRow }) => 
         </Badge>
       </div>
 
-      <div className="space-y-1">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>Sessões: {cp.sessions_used} de {pkg.total_sessions}</span>
-          <span>{sessionsRemaining} restante(s)</span>
+      {items.length > 0 ? (
+        <div className="space-y-2">
+          {items.map((item) => {
+            const itemProgress = item.quantity_total > 0 ? (item.quantity_used / item.quantity_total) * 100 : 0;
+            return (
+              <div key={item.id} className="space-y-1">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">{item.service_name}</span>
+                  <span>{item.quantity_used}/{item.quantity_total}</span>
+                </div>
+                <Progress value={itemProgress} className="h-1.5" />
+              </div>
+            );
+          })}
         </div>
-        <Progress value={progress} className="h-2" />
-      </div>
+      ) : (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Sessões: {cp.sessions_used} de {pkg.total_sessions}</span>
+            <span>{sessionsRemaining} restante(s)</span>
+          </div>
+          <Progress value={progress} className="h-2" />
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
@@ -86,6 +122,12 @@ const PackageCard = ({ cp, pkg }: { cp: ClientPackageRow; pkg: PackageRow }) => 
           <p className="text-xs text-muted-foreground whitespace-pre-line">{pkg.rules}</p>
         </div>
       )}
+
+      {cp.legacy_notes && cp.legacy_notes.trim() !== "" && (
+        <div className="rounded-md bg-muted/50 p-3">
+          <p className="text-xs text-muted-foreground whitespace-pre-line">{cp.legacy_notes}</p>
+        </div>
+      )}
     </div>
   );
 };
@@ -95,6 +137,7 @@ const ClientPackages = () => {
   const { salon } = useSalon();
   const [clientPackages, setClientPackages] = useState<ClientPackageRow[]>([]);
   const [packages, setPackages] = useState<PackageRow[]>([]);
+  const [packageItems, setPackageItems] = useState<ClientPackageItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -112,8 +155,19 @@ const ClientPackages = () => {
           .select("*")
           .eq("salon_id", salon.id),
       ]);
-      setClientPackages((cpRes.data || []) as ClientPackageRow[]);
+      const fetchedPackages = (cpRes.data || []) as ClientPackageRow[];
+      setClientPackages(fetchedPackages);
       setPackages((pRes.data || []) as PackageRow[]);
+
+      if (fetchedPackages.length > 0) {
+        const ids = fetchedPackages.map((cp) => cp.id);
+        const { data: itemsData } = await supabase
+          .from("client_package_items")
+          .select("*")
+          .in("client_package_id", ids);
+        setPackageItems((itemsData || []) as ClientPackageItem[]);
+      }
+
       setLoading(false);
     };
     fetch();
@@ -179,7 +233,8 @@ const ClientPackages = () => {
                 activePackages.map((cp) => {
                   const pkg = packageMap[cp.package_id];
                   if (!pkg) return null;
-                  return <PackageCard key={cp.id} cp={cp} pkg={pkg} />;
+                  const items = packageItems.filter((i) => i.client_package_id === cp.id);
+                  return <PackageCard key={cp.id} cp={cp} pkg={pkg} items={items} />;
                 })
               )}
             </TabsContent>
@@ -191,7 +246,8 @@ const ClientPackages = () => {
                 historyPackages.map((cp) => {
                   const pkg = packageMap[cp.package_id];
                   if (!pkg) return null;
-                  return <PackageCard key={cp.id} cp={cp} pkg={pkg} />;
+                  const items = packageItems.filter((i) => i.client_package_id === cp.id);
+                  return <PackageCard key={cp.id} cp={cp} pkg={pkg} items={items} />;
                 })
               )}
             </TabsContent>
@@ -203,3 +259,4 @@ const ClientPackages = () => {
 };
 
 export default ClientPackages;
+

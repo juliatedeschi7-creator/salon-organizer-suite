@@ -21,6 +21,7 @@ import NotificationsPage from "@/pages/NotificationsPage";
 import AdminPage from "@/pages/AdminPage";
 import EmployeePage from "@/pages/EmployeePage";
 import ClientAreaPage from "@/pages/ClientAreaPage";
+import PackagesPage from "@/pages/PackagesPage";
 import ClientInvitePage from "@/pages/ClientInvitePage";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -72,6 +73,7 @@ const AppRoutes = () => {
         <Route path="/agenda" element={<AgendaPage />} />
         <Route path="/servicos" element={<ServicesPage />} />
         <Route path="/clientes" element={<ClientesPage />} />
+        <Route path="/pacotes" element={<PackagesPage />} />
         <Route path="/anamnese" element={<AnamnesesPage />} />
         <Route path="/estoque" element={<EstoquePage />} />
         <Route path="/financeiro" element={<FinanceiroPage />} />

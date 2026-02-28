@@ -242,16 +242,56 @@ export type Database = {
           },
         ]
       }
+      client_package_items: {
+        Row: {
+          client_package_id: string
+          created_at: string
+          id: string
+          quantity_total: number
+          quantity_used: number
+          service_name: string
+          updated_at: string
+        }
+        Insert: {
+          client_package_id: string
+          created_at?: string
+          id?: string
+          quantity_total?: number
+          quantity_used?: number
+          service_name?: string
+          updated_at?: string
+        }
+        Update: {
+          client_package_id?: string
+          created_at?: string
+          id?: string
+          quantity_total?: number
+          quantity_used?: number
+          service_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_package_items_client_package_id_fkey"
+            columns: ["client_package_id"]
+            isOneToOne: false
+            referencedRelation: "client_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_packages: {
         Row: {
           client_user_id: string
           created_at: string
           expires_at: string
           id: string
+          legacy_notes: string | null
           package_id: string
           purchased_at: string
           salon_id: string
           sessions_used: number
+          source: string
           status: string
           updated_at: string
         }
@@ -260,10 +300,12 @@ export type Database = {
           created_at?: string
           expires_at: string
           id?: string
+          legacy_notes?: string | null
           package_id: string
           purchased_at?: string
           salon_id: string
           sessions_used?: number
+          source?: string
           status?: string
           updated_at?: string
         }
@@ -272,10 +314,12 @@ export type Database = {
           created_at?: string
           expires_at?: string
           id?: string
+          legacy_notes?: string | null
           package_id?: string
           purchased_at?: string
           salon_id?: string
           sessions_used?: number
+          source?: string
           status?: string
           updated_at?: string
         }
