@@ -10,39 +10,49 @@ import { Package, CalendarClock, ListChecks, Loader2, History } from "lucide-rea
 import { format, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+interface ServiceRow {
+  name: string;
+}
+
+interface ClientPackageItemRow {
+  id: string;
+  service_id: string;
+  quantity_total: number;
+  quantity_used: number;
+  services: ServiceRow | null;
+}
+
 interface PackageRow {
   id: string;
   name: string;
-  description: string;
-  total_sessions: number;
-  price: number;
+  description: string | null;
+  price: number | null;
   validity_days: number;
-  rules: string;
-  service_id: string | null;
+  rules: string | null;
 }
 
 interface ClientPackageRow {
   id: string;
   package_id: string;
-  sessions_used: number;
   purchased_at: string;
   expires_at: string;
   status: string;
+  client_package_items: ClientPackageItemRow[];
 }
 
 const statusMap: Record<string, { label: string; className: string }> = {
   ativo: { label: "Ativo", className: "bg-green-500/15 text-green-700 border-green-500/30" },
   concluido: { label: "Concluído", className: "bg-primary/15 text-primary border-primary/30" },
+  finalizado: { label: "Finalizado", className: "bg-primary/15 text-primary border-primary/30" },
   expirado: { label: "Expirado", className: "bg-muted text-muted-foreground border-border" },
   cancelado: { label: "Cancelado", className: "bg-destructive/15 text-destructive border-destructive/30" },
 };
 
 const PackageCard = ({ cp, pkg }: { cp: ClientPackageRow; pkg: PackageRow }) => {
-  const sessionsRemaining = pkg.total_sessions - cp.sessions_used;
-  const progress = (cp.sessions_used / pkg.total_sessions) * 100;
   const expired = isPast(new Date(cp.expires_at));
   const effectiveStatus = expired && cp.status === "ativo" ? "expirado" : cp.status;
   const st = statusMap[effectiveStatus] || statusMap.ativo;
+  const items = cp.client_package_items ?? [];
 
   return (
     <div className="rounded-lg border border-border p-4 space-y-3">
@@ -58,13 +68,22 @@ const PackageCard = ({ cp, pkg }: { cp: ClientPackageRow; pkg: PackageRow }) => 
         </Badge>
       </div>
 
-      <div className="space-y-1">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>Sessões: {cp.sessions_used} de {pkg.total_sessions}</span>
-          <span>{sessionsRemaining} restante(s)</span>
+      {items.length > 0 && (
+        <div className="space-y-2">
+          {items.map((item) => {
+            const pct = item.quantity_total > 0 ? (item.quantity_used / item.quantity_total) * 100 : 0;
+            return (
+              <div key={item.id} className="space-y-1">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{item.services?.name ?? "Serviço desconhecido"}</span>
+                  <span>{item.quantity_used}/{item.quantity_total}</span>
+                </div>
+                <Progress value={pct} className="h-1.5" />
+              </div>
+            );
+          })}
         </div>
-        <Progress value={progress} className="h-2" />
-      </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
@@ -75,7 +94,7 @@ const PackageCard = ({ cp, pkg }: { cp: ClientPackageRow; pkg: PackageRow }) => 
           <CalendarClock className="h-3.5 w-3.5" />
           Válido até {format(new Date(cp.expires_at), "dd/MM/yyyy", { locale: ptBR })}
         </span>
-        {pkg.price > 0 && <span>R$ {Number(pkg.price).toFixed(2)}</span>}
+        {pkg.price != null && pkg.price > 0 && <span>R$ {Number(pkg.price).toFixed(2)}</span>}
       </div>
 
       {pkg.rules && pkg.rules.trim() !== "" && (
@@ -98,25 +117,25 @@ const ClientPackages = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchPackages = async () => {
       if (!user || !salon) return;
       const [cpRes, pRes] = await Promise.all([
         supabase
           .from("client_packages")
-          .select("*")
+          .select("id, package_id, purchased_at, expires_at, status, client_package_items(id, service_id, quantity_total, quantity_used, services(name))")
           .eq("client_user_id", user.id)
           .eq("salon_id", salon.id)
           .order("purchased_at", { ascending: false }),
         supabase
           .from("packages")
-          .select("*")
+          .select("id, name, description, price, validity_days, rules")
           .eq("salon_id", salon.id),
       ]);
-      setClientPackages((cpRes.data || []) as ClientPackageRow[]);
-      setPackages((pRes.data || []) as PackageRow[]);
+      setClientPackages((cpRes.data ?? []) as unknown as ClientPackageRow[]);
+      setPackages((pRes.data ?? []) as PackageRow[]);
       setLoading(false);
     };
-    fetch();
+    fetchPackages();
   }, [user, salon]);
 
   if (loading) {
