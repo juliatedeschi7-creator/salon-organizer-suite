@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera, Save, Link as LinkIcon, Clock, Bell, Palette, Loader2, Plus, X, Send } from "lucide-react";
+import { Camera, Save, Clock, Bell, Palette, Loader2, Plus, X, Send } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -202,44 +202,6 @@ const SettingsPage = () => {
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   rows={3}
                 />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <LinkIcon className="h-5 w-5 text-primary" />
-                Link da Cliente
-              </CardTitle>
-              <CardDescription>URL personalizada para suas clientes acessarem</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">{window.location.origin}/convite/</span>
-                <Input
-                  className="max-w-xs"
-                  value={form.client_link}
-                  onChange={(e) => setForm({ ...form, client_link: e.target.value.replace(/\s/g, "-").toLowerCase() })}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Input
-                  readOnly
-                  value={`${window.location.origin}/convite/${form.client_link}`}
-                  className="text-xs"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/convite/${form.client_link}`);
-                    toast.success("Link copiado!");
-                  }}
-                >
-                  Copiar
-                </Button>
               </div>
             </CardContent>
           </Card>
