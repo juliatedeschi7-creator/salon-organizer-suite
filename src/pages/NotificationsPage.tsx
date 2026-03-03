@@ -42,6 +42,8 @@ const typeLabelMap: Record<string, { label: string; className: string }> = {
   agendamento_cancelado: { label: "Cancelado", className: "bg-destructive/15 text-destructive border-destructive/30" },
   agendamento_concluido: { label: "Concluído", className: "bg-green-500/15 text-green-700 border-green-500/30" },
   promocao: { label: "Promoção 🎉", className: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30" },
+  nova_cobranca: { label: "Cobrança 💰", className: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30" },
+  pagamento_registrado: { label: "Pagamento ✅", className: "bg-green-500/15 text-green-700 border-green-500/30" },
 };
 
 const NotificationsPage = () => {
