@@ -23,6 +23,8 @@ import AdminPage from "@/pages/AdminPage";
 import EmployeePage from "@/pages/EmployeePage";
 import ClientAreaPage from "@/pages/ClientAreaPage";
 import ClientInvitePage from "@/pages/ClientInvitePage";
+import ContasPage from "@/pages/ContasPage";
+import TeamInvitePage from "@/pages/TeamInvitePage";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -44,6 +46,7 @@ const AppRoutes = () => {
     return (
       <Routes>
         <Route path="/convite/:linkId" element={<ClientInvitePage />} />
+        <Route path="/convite-equipe/:token" element={<TeamInvitePage />} />
         <Route path="*" element={<AuthPage />} />
       </Routes>
     );
@@ -77,12 +80,14 @@ const AppRoutes = () => {
         <Route path="/pacotes" element={<PacotesPage />} />
         <Route path="/estoque" element={<EstoquePage />} />
         <Route path="/financeiro" element={<FinanceiroPage />} />
+        <Route path="/contas" element={<ContasPage />} />
         <Route path="/configuracoes" element={<SettingsPage />} />
         <Route path="/notificacoes" element={<NotificationsPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/minha-agenda" element={<EmployeePage />} />
         <Route path="/cliente-area" element={<ClientAreaPage />} />
       </Route>
+      <Route path="/convite-equipe/:token" element={<TeamInvitePage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
