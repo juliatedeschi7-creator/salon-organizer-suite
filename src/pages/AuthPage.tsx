@@ -23,7 +23,8 @@ const AuthPage = () => {
     if (isLogin) {
       // Switch storage based on "remember me"
       if (!rememberMe) {
-        localStorage.removeItem("sb-kxgfpjvetdbummcsacol-auth-token");
+        const oldKey = Object.keys(localStorage).find(k => k.startsWith("sb-") && k.endsWith("-auth-token"));
+        if (oldKey) localStorage.removeItem(oldKey);
       }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {

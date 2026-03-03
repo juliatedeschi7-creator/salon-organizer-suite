@@ -64,6 +64,36 @@ This project is built with:
 
 Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
 
+## Configuring Supabase environment variables
+
+This project uses a Supabase backend. You must set the following environment variables before building or deploying.
+
+### Local development
+
+Copy `.env.example` to `.env` and fill in the values:
+
+```sh
+cp .env.example .env
+```
+
+Then edit `.env`:
+
+```
+VITE_SUPABASE_URL=https://sbhlrduoeatyrjlosvnb.supabase.co
+VITE_SUPABASE_ANON_KEY=<your-anon-key>
+```
+
+You can find the anon key in your Supabase project under **Settings → API**.
+
+### Vercel deployment
+
+Add the following environment variables in your Vercel project settings (**Settings → Environment Variables**) for **Production**, **Preview**, and **Development**:
+
+| Variable | Value |
+|---|---|
+| `VITE_SUPABASE_URL` | `https://sbhlrduoeatyrjlosvnb.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | *(your project's anon/public key)* |
+
 ## Can I connect a custom domain to my Lovable project?
 
 Yes, you can!
