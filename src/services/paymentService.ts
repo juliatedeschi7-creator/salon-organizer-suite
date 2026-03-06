@@ -1,56 +1,46 @@
-// Payment Service
+// src/services/paymentService.ts
 
-class PaymentService {
-    constructor(db) {
-        this.db = db;
-        this.tableName = 'client_payments'; // Updated table name
+import { Payment } from '../models/Payment';
+
+// Update to use the correct table name
+const TABLE_NAME = 'client_payments';
+
+// Error handling type
+type ErrorHandler = (error: Error) => void;
+
+// Function to list payments
+export const listPayments = async (): Promise<Payment[]> => {
+    try {
+        // Code to list payments
+        return await database.query(`SELECT * FROM ${TABLE_NAME}`);
+    } catch (error) {
+        handleError(error);
+        throw new Error('Failed to list payments');
     }
+};
 
-    async create(payment) {
-        try {
-            const result = await this.db(this.tableName).insert(payment);
-            return result;
-        } catch (error) {
-            console.error('Error creating payment:', error);
-            throw new Error('Failed to create payment');
-        }
+// Function to create a payment
+export const createPayment = async (paymentData: Payment): Promise<void> => {
+    try {
+        await database.query(`INSERT INTO ${TABLE_NAME} (amount, date, clientId) VALUES (?, ?, ?)`, [paymentData.amount, paymentData.date, paymentData.clientId]);
+    } catch (error) {
+        handleError(error);
+        throw new Error('Failed to create payment');
     }
+};
 
-    async read(id) {
-        try {
-            const payment = await this.db(this.tableName).where({ id }).first();
-            if (!payment) {
-                throw new Error('Payment not found');
-            }
-            return payment;
-        } catch (error) {
-            console.error('Error reading payment:', error);
-            throw new Error('Failed to read payment');
-        }
+// Function to read a specific payment by ID
+export const readPayment = async (id: number): Promise<Payment | null> => {
+    try {
+        const result = await database.query(`SELECT * FROM ${TABLE_NAME} WHERE id = ?`, [id]);
+        return result.length ? result[0] : null;
+    } catch (error) {
+        handleError(error);
+        throw new Error('Failed to read payment');
     }
+};
 
-    async list() {
-        try {
-            const payments = await this.db(this.tableName);
-            return payments;
-        } catch (error) {
-            console.error('Error listing payments:', error);
-            throw new Error('Failed to list payments');
-        }
-    }
-
-    async update(id, payment) {
-        try {
-            const result = await this.db(this.tableName).where({ id }).update(payment);
-            if (result === 0) {
-                throw new Error('Payment not found or no changes made');
-            }
-            return result;
-        } catch (error) {
-            console.error('Error updating payment:', error);
-            throw new Error('Failed to update payment');
-        }
-    }
-}
-
-module.exports = PaymentService;
+// Error handling function
+const handleError: ErrorHandler = (error) => {
+    console.error('Database error:', error);
+};
