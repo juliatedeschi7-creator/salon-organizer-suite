@@ -1,37 +1,63 @@
-import { ClientPayment } from '../models/ClientPayment';
+// src/services/paymentService.ts
 
+import { ClientPayment } from '../models/clientPaymentModel'; // Assuming you have a model defined
+import { DatabaseError } from '../errors/DatabaseError'; // Assuming you have a custom error class
+
+/**
+ * Class for managing client payments
+ */
 export class PaymentService {
-    async processPayment(paymentData) {
+    
+    /**
+     * Create a new client payment
+     * @param paymentData - The data for the new payment
+     */
+    public async createPayment(paymentData: ClientPayment) {
         try {
-            // Assuming you have some logic to validate paymentData
             const payment = await ClientPayment.create(paymentData);
             return payment;
         } catch (error) {
-            console.error('Error processing payment:', error);
-            throw new Error('Payment processing failed. Please try again later.');
+            throw new DatabaseError('Error creating payment: ' + error.message);
         }
     }
 
-    async retrievePayments(clientId) {
+    /**
+     * Get all payments for a client
+     * @param clientId - The ID of the client
+     */
+    public async getPaymentsForClient(clientId: string) {
         try {
             const payments = await ClientPayment.findAll({ where: { clientId } });
             return payments;
         } catch (error) {
-            console.error('Error retrieving payments:', error);
-            throw new Error('Failed to retrieve payments. Please contact support.');
+            throw new DatabaseError('Error fetching payments: ' + error.message);
         }
     }
 
-    async deletePayment(paymentId) {
+    /**
+     * Update a client payment
+     * @param paymentId - The ID of the payment
+     * @param paymentData - The new data for the payment
+     */
+    public async updatePayment(paymentId: string, paymentData: Partial<ClientPayment>) {
+        try {
+            const payment = await ClientPayment.update(paymentData, { where: { id: paymentId } });
+            return payment;
+        } catch (error) {
+            throw new DatabaseError('Error updating payment: ' + error.message);
+        }
+    }
+
+    /**
+     * Delete a client payment
+     * @param paymentId - The ID of the payment
+     */
+    public async deletePayment(paymentId: string) {
         try {
             const result = await ClientPayment.destroy({ where: { id: paymentId } });
-            if (result === 0) {
-                throw new Error('Payment not found');
-            }
-            return { message: 'Payment deleted successfully' };
+            return result > 0;
         } catch (error) {
-            console.error('Error deleting payment:', error);
-            throw new Error('Failed to delete payment. Please contact support.');
+            throw new DatabaseError('Error deleting payment: ' + error.message);
         }
     }
 }
