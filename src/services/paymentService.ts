@@ -1,63 +1,56 @@
-// src/services/paymentService.ts
+// Payment Service
 
-import { ClientPayment } from '../models/clientPaymentModel'; // Assuming you have a model defined
-import { DatabaseError } from '../errors/DatabaseError'; // Assuming you have a custom error class
+class PaymentService {
+    constructor(db) {
+        this.db = db;
+        this.tableName = 'client_payments'; // Updated table name
+    }
 
-/**
- * Class for managing client payments
- */
-export class PaymentService {
-    
-    /**
-     * Create a new client payment
-     * @param paymentData - The data for the new payment
-     */
-    public async createPayment(paymentData: ClientPayment) {
+    async create(payment) {
         try {
-            const payment = await ClientPayment.create(paymentData);
-            return payment;
+            const result = await this.db(this.tableName).insert(payment);
+            return result;
         } catch (error) {
-            throw new DatabaseError('Error creating payment: ' + error.message);
+            console.error('Error creating payment:', error);
+            throw new Error('Failed to create payment');
         }
     }
 
-    /**
-     * Get all payments for a client
-     * @param clientId - The ID of the client
-     */
-    public async getPaymentsForClient(clientId: string) {
+    async read(id) {
         try {
-            const payments = await ClientPayment.findAll({ where: { clientId } });
+            const payment = await this.db(this.tableName).where({ id }).first();
+            if (!payment) {
+                throw new Error('Payment not found');
+            }
+            return payment;
+        } catch (error) {
+            console.error('Error reading payment:', error);
+            throw new Error('Failed to read payment');
+        }
+    }
+
+    async list() {
+        try {
+            const payments = await this.db(this.tableName);
             return payments;
         } catch (error) {
-            throw new DatabaseError('Error fetching payments: ' + error.message);
+            console.error('Error listing payments:', error);
+            throw new Error('Failed to list payments');
         }
     }
 
-    /**
-     * Update a client payment
-     * @param paymentId - The ID of the payment
-     * @param paymentData - The new data for the payment
-     */
-    public async updatePayment(paymentId: string, paymentData: Partial<ClientPayment>) {
+    async update(id, payment) {
         try {
-            const payment = await ClientPayment.update(paymentData, { where: { id: paymentId } });
-            return payment;
+            const result = await this.db(this.tableName).where({ id }).update(payment);
+            if (result === 0) {
+                throw new Error('Payment not found or no changes made');
+            }
+            return result;
         } catch (error) {
-            throw new DatabaseError('Error updating payment: ' + error.message);
-        }
-    }
-
-    /**
-     * Delete a client payment
-     * @param paymentId - The ID of the payment
-     */
-    public async deletePayment(paymentId: string) {
-        try {
-            const result = await ClientPayment.destroy({ where: { id: paymentId } });
-            return result > 0;
-        } catch (error) {
-            throw new DatabaseError('Error deleting payment: ' + error.message);
+            console.error('Error updating payment:', error);
+            throw new Error('Failed to update payment');
         }
     }
 }
+
+module.exports = PaymentService;
