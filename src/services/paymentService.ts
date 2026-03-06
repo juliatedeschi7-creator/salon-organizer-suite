@@ -1,45 +1,37 @@
-import { createClient } from '@supabase/supabase-js';
+import { ClientPayment } from '../models/ClientPayment';
 
-const supabaseUrl = 'your_supabase_url';
-const supabaseKey = 'your_supabase_key';
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-/**
- * Process payment using Supabase.
- * @param {Object} paymentData - The data related to the payment.
- * @returns {Promise<Object>} - Response from the Supabase query.
- */
-export const processPayment = async (paymentData) => {
-    try {
-        const { data, error } = await supabase
-            .from('payments')
-            .insert([paymentData]);
-
-        if (error) throw error;
-        return data;
-    } catch (error) {
-        console.error('Payment processing error:', error);
-        throw new Error('Payment failed, please try again later.');
+export class PaymentService {
+    async processPayment(paymentData) {
+        try {
+            // Assuming you have some logic to validate paymentData
+            const payment = await ClientPayment.create(paymentData);
+            return payment;
+        } catch (error) {
+            console.error('Error processing payment:', error);
+            throw new Error('Payment processing failed. Please try again later.');
+        }
     }
-};
 
-/**
- * Retrieve payment status.
- * @param {string} paymentId - The ID of the payment.
- * @returns {Promise<Object>} - Payment status response.
- */
-export const getPaymentStatus = async (paymentId) => {
-    try {
-        const { data, error } = await supabase
-            .from('payments')
-            .select('*')
-            .eq('id', paymentId)
-            .single();
-
-        if (error) throw error;
-        return data;
-    } catch (error) {
-        console.error('Error retrieving payment status:', error);
-        throw new Error('Could not retrieve payment status, please try again later.');
+    async retrievePayments(clientId) {
+        try {
+            const payments = await ClientPayment.findAll({ where: { clientId } });
+            return payments;
+        } catch (error) {
+            console.error('Error retrieving payments:', error);
+            throw new Error('Failed to retrieve payments. Please contact support.');
+        }
     }
-};
+
+    async deletePayment(paymentId) {
+        try {
+            const result = await ClientPayment.destroy({ where: { id: paymentId } });
+            if (result === 0) {
+                throw new Error('Payment not found');
+            }
+            return { message: 'Payment deleted successfully' };
+        } catch (error) {
+            console.error('Error deleting payment:', error);
+            throw new Error('Failed to delete payment. Please contact support.');
+        }
+    }
+}
